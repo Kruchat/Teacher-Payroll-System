@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="th" x-data="appState()" x-init="init()" :class="{'dark': darkMode}">
+<head>
+  <meta charset="UTF-8" />
+  <title>{{APP_NAME}}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            primary: '#38bdf8',
+            warning: '#fbbf24',
+            danger: '#f87171',
+            success: '#34d399',
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <style>
+    .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
+    .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
+    .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.5); border-radius: 9999px; }
+  </style>
+</head>
+<body class="min-h-screen transition-colors" :class="darkMode ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'">
+  <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
+    <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div>
+        <h1 class="text-3xl font-bold">{{APP_NAME}}</h1>
+        <p class="text-slate-600 dark:text-slate-400">ระบบบันทึกและจัดการเอกสารส่วนตัว เชื่อม Google Drive + Google Sheets</p>
+      </div>
+      <div class="flex flex-wrap gap-2 items-center">
+        <button @click="toggleDarkMode" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 transition">สลับโหมด</button>
+        <button @click="refresh" class="px-3 py-2 rounded bg-primary/20 text-primary hover:bg-primary/30">รีเฟรชข้อมูล</button>
+        <button @click="openCreateForm" :disabled="isLocked" class="px-3 py-2 rounded bg-success/20 text-success hover:bg-success/30 disabled:opacity-40 disabled:cursor-not-allowed">+ เพิ่มเอกสาร</button>
+        <button @click="openSettings" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700">ตั้งค่า</button>
+      </div>
+    </header>
+
+    <section class="grid md:grid-cols-3 gap-4" id="dashboard">
+      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
+        <h3 class="text-sm uppercase text-slate-400">ทั้งหมด</h3>
+        <p class="text-3xl font-semibold" x-text="summary.total"></p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
+        <h3 class="text-sm uppercase text-warning">ใกล้หมดอายุ</h3>
+        <p class="text-3xl font-semibold text-warning" x-text="summary.aboutToExpire"></p>
+      </div>
+      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
+        <h3 class="text-sm uppercase text-danger">หมดอายุ</h3>
+        <p class="text-3xl font-semibold text-danger" x-text="summary.expired"></p>
+      </div>
+    </section>
+
+    <section class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg shadow">
+      <div class="border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex gap-2 items-center">
+          <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-primary/30 text-primary' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" class="px-3 py-2 rounded">ตาราง</button>
+          <button @click="viewMode = 'card'" :class="viewMode === 'card' ? 'bg-primary/30 text-primary' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" class="px-3 py-2 rounded">การ์ด</button>
+        </div>
+        <div class="flex gap-2 items-center">
+          <input type="text" x-model="filters.keyword" @input.debounce.500ms="applyFilters" placeholder="ค้นหา..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" />
+          <select x-model="filters.status" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
+            <option value="">สถานะทั้งหมด</option>
+            <option value="active">Active</option>
+            <option value="archived">Archived</option>
+            <option value="expired">Expired</option>
+          </select>
+          <input type="date" x-model="filters.issueStart" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Issue start" />
+          <input type="date" x-model="filters.issueEnd" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Issue end" />
+          <input type="date" x-model="filters.expiryStart" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Expiry start" />
+          <input type="date" x-model="filters.expiryEnd" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Expiry end" />
+          <select x-model="filters.sortField" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
+            <option value="">เรียงตาม</option>
+            <option value="title">ชื่อ</option>
+            <option value="category">หมวดหมู่</option>
+            <option value="expiryDate">วันหมดอายุ</option>
+          </select>
+          <select x-model="filters.sortDirection" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
+            <option value="asc">น้อย→มาก</option>
+            <option value="desc">มาก→น้อย</option>
+          </select>
+        </div>
+      </div>
+      <div class="p-4">
+        <template x-if="viewMode === 'table'">
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-slate-700 text-sm">
+              <thead>
+                <tr class="bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase text-xs">
+                  <th class="px-3 py-2 text-left">ชื่อ</th>
+                  <th class="px-3 py-2 text-left">หมวดหมู่</th>
+                  <th class="px-3 py-2 text-left">เจ้าของ</th>
+                  <th class="px-3 py-2 text-left">วันออก</th>
+                  <th class="px-3 py-2 text-left">วันหมดอายุ</th>
+                  <th class="px-3 py-2 text-left">สถานะ</th>
+                  <th class="px-3 py-2 text-right">การจัดการ</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
+                <template x-for="doc in documents" :key="doc.id">
+                  <tr class="hover:bg-slate-100 dark:hover:bg-slate-900/60">
+                    <td class="px-3 py-2">
+                      <div class="font-medium" x-text="doc.title"></div>
+                      <div class="text-xs text-slate-500 dark:text-slate-400" x-text="doc.tags.join(', ')"></div>
+                    </td>
+                    <td class="px-3 py-2" x-text="doc.category"></td>
+                    <td class="px-3 py-2" x-text="doc.owner"></td>
+                    <td class="px-3 py-2" x-text="formatDate(doc.issueDate)"></td>
+                    <td class="px-3 py-2">
+                      <div class="flex items-center gap-2">
+                        <span x-text="formatDate(doc.expiryDate)"></span>
+                        <span x-show="doc.expiryBadge" :class="doc.expiryBadge?.class" class="text-xs px-2 py-0.5 rounded-full" x-text="doc.expiryBadge?.label"></span>
+                      </div>
+                    </td>
+                    <td class="px-3 py-2">
+                      <span :class="statusBadge(doc.status)" class="px-2 py-0.5 rounded-full text-xs font-semibold" x-text="doc.status"></span>
+                    </td>
+                    <td class="px-3 py-2 text-right space-x-2">
+                      <button @click="viewDetail(doc)" class="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded text-xs">รายละเอียด</button>
+                      <button @click="openEditForm(doc)" :disabled="isLocked" class="px-2 py-1 bg-primary/30 text-primary rounded text-xs disabled:opacity-40">แก้ไข</button>
+                      <button @click="archiveDocument(doc)" :disabled="isLocked" class="px-2 py-1 bg-danger/20 text-danger rounded text-xs disabled:opacity-40">Archive</button>
+                    </td>
+                  </tr>
+                </template>
+              </tbody>
+            </table>
+            <div class="flex justify-between items-center text-sm text-slate-600 dark:text-slate-400 mt-4">
+              <div>หน้า <span x-text="page"></span> / <span x-text="totalPages"></span> (ทั้งหมด <span x-text="total"></span> รายการ)</div>
+              <div class="flex gap-2">
+                <button @click="changePage(page-1)" :disabled="page<=1" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded disabled:opacity-40">ก่อนหน้า</button>
+                <button @click="changePage(page+1)" :disabled="page>=totalPages" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded disabled:opacity-40">ถัดไป</button>
+              </div>
+            </div>
+          </div>
+        </template>
+        <template x-if="viewMode === 'card'">
+          <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+            <template x-for="doc in documents" :key="doc.id">
+              <div class="bg-white dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow flex flex-col justify-between">
+                <div class="space-y-2">
+                  <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold" x-text="doc.title"></h3>
+                    <span :class="statusBadge(doc.status)" class="px-2 py-0.5 rounded-full text-xs font-semibold" x-text="doc.status"></span>
+                  </div>
+                  <p class="text-sm text-slate-600 dark:text-slate-300" x-text="doc.notes"></p>
+                  <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
+                    <div>หมวดหมู่: <span x-text="doc.category"></span></div>
+                    <div>เจ้าของ: <span x-text="doc.owner"></span></div>
+                    <div>ออก: <span x-text="formatDate(doc.issueDate)"></span></div>
+                    <div>หมดอายุ: <span x-text="formatDate(doc.expiryDate)"></span></div>
+                  </div>
+                  <div class="flex flex-wrap gap-1">
+                    <template x-for="tag in doc.tags" :key="tag">
+                      <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-full text-xs" x-text="tag"></span>
+                    </template>
+                  </div>
+                </div>
+                <div class="flex gap-2 mt-4">
+                  <button @click="viewDetail(doc)" class="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded">รายละเอียด</button>
+                  <button @click="openEditForm(doc)" :disabled="isLocked" class="flex-1 px-3 py-2 bg-primary/30 text-primary rounded disabled:opacity-40">แก้ไข</button>
+                </div>
+              </div>
+            </template>
+          </div>
+        </template>
+      </div>
+    </section>
+
+    <!-- Form modal -->
+    <div x-show="showForm" x-transition class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-30">
+      <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+          <h2 class="text-xl font-semibold" x-text="form.id ? 'แก้ไขเอกสาร' : 'เพิ่มเอกสาร'"></h2>
+          <button @click="closeForm" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <form @submit.prevent="submitForm" class="p-4 space-y-4">
+          <div class="grid md:grid-cols-2 gap-4">
+            <label class="flex flex-col gap-1 text-sm">
+              <span>ชื่อเอกสาร *</span>
+              <input x-model="form.title" required class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="เช่น บัตรประชาชน" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>หมวดหมู่</span>
+              <input x-model="form.category" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="เช่น ส่วนตัว" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>แท็ก (คั่นด้วย ,)</span>
+              <input x-model="form.tags" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="passport,important" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>เจ้าของ/อีเมล</span>
+              <input x-model="form.owner" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="name@email.com" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>วันที่ออก</span>
+              <input type="date" x-model="form.issueDate" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>วันหมดอายุ</span>
+              <input type="date" x-model="form.expiryDate" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>แจ้งเตือนล่วงหน้า (วัน)</span>
+              <input type="number" min="0" x-model.number="form.remindDays" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" />
+            </label>
+            <label class="flex flex-col gap-1 text-sm">
+              <span>สถานะ</span>
+              <select x-model="form.status" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100">
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="expired">Expired</option>
+              </select>
+            </label>
+          </div>
+          <label class="flex flex-col gap-1 text-sm">
+            <span>สถานที่เก็บจริง</span>
+            <input x-model="form.location" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="ชั้นเอกสาร" />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span>แหล่งที่มา</span>
+            <input x-model="form.source" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" placeholder="สแกน, ถ่ายรูป" />
+          </label>
+          <label class="flex flex-col gap-1 text-sm">
+            <span>หมายเหตุ</span>
+            <textarea x-model="form.notes" class="bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" rows="3"></textarea>
+          </label>
+
+          <div class="border border-dashed border-slate-300 dark:border-slate-600 rounded-lg p-4 text-center bg-white/60 dark:bg-transparent"
+            @dragover.prevent
+            @drop.prevent="handleDroppedFiles($event)">
+            <p class="text-sm text-slate-600 dark:text-slate-300">แนบไฟล์ (ลากวางได้ รองรับหลายไฟล์)</p>
+            <input type="file" multiple class="hidden" x-ref="fileInput" @change="handleFileSelection($event)" />
+            <button type="button" @click="$refs.fileInput.click()" class="mt-2 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded">เลือกไฟล์</button>
+            <div class="mt-3 space-y-2 text-left" x-show="form.driveFiles.length">
+              <template x-for="file in form.driveFiles" :key="file.id + file.name">
+                <div class="flex items-center justify-between text-sm bg-slate-200 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 px-3 py-2 rounded">
+                  <div>
+                    <div x-text="file.name"></div>
+                    <a :href="file.url" target="_blank" class="text-primary text-xs">เปิดใน Drive</a>
+                  </div>
+                  <button type="button" @click="removeAttachment(file)" class="text-danger text-xs">ลบ</button>
+                </div>
+              </template>
+            </div>
+          </div>
+
+          <div class="flex justify-end gap-3">
+            <button type="button" @click="closeForm" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">ยกเลิก</button>
+            <button type="submit" class="px-4 py-2 bg-success/20 text-success rounded">บันทึก</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Detail modal -->
+    <div x-show="showDetail" x-transition class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-20">
+      <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+          <h2 class="text-xl font-semibold">รายละเอียดเอกสาร</h2>
+          <button @click="closeDetail" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div class="p-4 space-y-4 text-sm">
+          <div class="grid md:grid-cols-2 gap-4">
+            <div><span class="text-slate-400">ชื่อ: </span><span x-text="selected?.title"></span></div>
+            <div><span class="text-slate-400">หมวดหมู่: </span><span x-text="selected?.category"></span></div>
+            <div><span class="text-slate-400">เจ้าของ: </span><span x-text="selected?.owner"></span></div>
+            <div><span class="text-slate-400">สถานะ: </span><span x-text="selected?.status"></span></div>
+            <div><span class="text-slate-400">วันที่ออก: </span><span x-text="formatDate(selected?.issueDate)"></span></div>
+            <div><span class="text-slate-400">วันหมดอายุ: </span><span x-text="formatDate(selected?.expiryDate)"></span></div>
+            <div><span class="text-slate-400">แจ้งเตือนล่วงหน้า: </span><span x-text="selected?.remindDays + ' วัน'"></span></div>
+            <div><span class="text-slate-400">สถานที่เก็บ: </span><span x-text="selected?.location"></span></div>
+            <div class="md:col-span-2"><span class="text-slate-400">หมายเหตุ: </span><span x-text="selected?.notes"></span></div>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm mb-2">ไฟล์แนบ</h3>
+            <div class="space-y-2">
+              <template x-for="file in selected?.driveFiles || []" :key="file.id">
+                <div class="flex justify-between items-center bg-slate-200 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 px-3 py-2 rounded">
+                  <div>
+                    <div x-text="file.name"></div>
+                    <div class="text-xs text-slate-400" x-text="file.id"></div>
+                  </div>
+                  <div class="flex gap-2">
+                    <a :href="file.url" target="_blank" class="px-3 py-1 bg-primary/30 text-primary rounded text-xs">เปิดไฟล์</a>
+                    <button @click="copyToClipboard(file.url)" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded text-xs">คัดลอกลิงก์</button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+          <div>
+            <h3 class="font-semibold text-sm mb-2">ประวัติเวอร์ชัน</h3>
+            <ol class="space-y-2">
+              <template x-for="version in selected?.versionHistory || []" :key="version.version + version.fileId">
+                <li class="bg-slate-200 dark:bg-slate-800/60 text-slate-800 dark:text-slate-100 px-3 py-2 rounded">
+                  <div class="flex justify-between items-center">
+                    <div>
+                      <div class="font-semibold" x-text="version.version + ' - ' + (version.fileName || '')"></div>
+                      <div class="text-xs text-slate-400" x-text="version.uploadedAt"></div>
+                    </div>
+                    <div class="flex gap-2 text-xs">
+                    <a :href="version.fileUrl" target="_blank" class="px-3 py-1 bg-primary/30 text-primary rounded">เปิด</a>
+                      <button @click="copyToClipboard(version.fileUrl)" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">คัดลอก</button>
+                    </div>
+                  </div>
+                </li>
+              </template>
+            </ol>
+          </div>
+          <div class="flex justify-end gap-2">
+            <button @click="printDocument(selected)" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">พิมพ์</button>
+            <button @click="closeDetail" class="px-4 py-2 bg-primary/30 text-primary rounded">ปิด</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Settings modal -->
+    <div x-show="showSettings" x-transition class="fixed inset-0 bg-black/60 flex items-center justify-center p-4 z-40">
+      <div class="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 rounded-lg shadow-xl max-w-3xl w-full max-h-[90vh] overflow-y-auto scrollbar-thin">
+        <div class="flex justify-between items-center border-b border-slate-200 dark:border-slate-700 px-4 py-3">
+          <h2 class="text-xl font-semibold">ตั้งค่า &amp; ผู้ดูแล</h2>
+          <button @click="closeSettings" class="text-slate-400 hover:text-white">✕</button>
+        </div>
+        <div class="p-4 space-y-4 text-sm">
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4">
+            <h3 class="font-semibold text-slate-700 dark:text-slate-200">โหมดผู้ดูแล</h3>
+            <p class="text-slate-500 dark:text-slate-400 text-sm">สถานะ: <span :class="isLocked ? 'text-danger' : 'text-success'" x-text="isLocked ? 'ล็อก' : 'ปลดล็อก'"></span></p>
+            <div class="flex gap-2 mt-3">
+              <input type="password" x-model="adminPassword" placeholder="{{ADMIN_PASS}}" class="flex-1 bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-slate-800 dark:text-slate-100" />
+              <button @click="unlockAdmin" class="px-4 py-2 bg-success/20 text-success rounded">ปลดล็อก</button>
+              <button @click="lockAdmin" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">ล็อก</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2">
+            <h3 class="font-semibold">ข้อมูลการเชื่อมต่อ</h3>
+            <p>Sheet ID: <span class="text-primary" x-text="settings.sheetId"></span></p>
+            <p>Sheet Name: <span class="text-primary" x-text="settings.sheetName"></span></p>
+            <p>Drive Folder ID: <span class="text-primary" x-text="settings.driveFolderId"></span></p>
+          </div>
+
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+            <h3 class="font-semibold">การสำรองและทริกเกอร์</h3>
+            <div class="flex gap-2 flex-wrap">
+              <button @click="createTriggers" class="px-4 py-2 bg-primary/30 text-primary rounded">สร้าง Trigger อัตโนมัติ</button>
+              <button @click="deleteTriggers" class="px-4 py-2 bg-danger/20 text-danger rounded">ลบ Trigger</button>
+              <button @click="manualBackup" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">สำรองข้อมูลทันที</button>
+              <button @click="downloadExport('csv')" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">Export CSV</button>
+              <button @click="downloadExport('json')" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">Export JSON</button>
+              <button @click="ping" class="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded">Health Check</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2">
+            <h3 class="font-semibold">ตัวอย่างอีเมลแจ้งเตือน</h3>
+            <pre class="bg-slate-900 rounded p-3 text-xs whitespace-pre-wrap">To: เจ้าของ (owner@email.com)
+Subject: [Document Expiry Notice] ชื่อเอกสาร
+
+เอกสาร: ชื่อเอกสาร
+เจ้าของ: owner@email.com
+วันหมดอายุ: 2024-12-31
+สถานะ: active
+ลิงก์เว็บแอป: https://script.google.com/macros/s/WEB_APP_ID/exec
+ไฟล์:
+ - ไฟล์หลัก: https://drive.google.com/open?id=FILE_ID</pre>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notifications -->
+  <div class="fixed bottom-4 right-4 space-y-2 z-50">
+    <template x-for="toast in toasts" :key="toast.id">
+      <div class="px-4 py-3 rounded-lg shadow bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100" x-text="toast.message"></div>
+    </template>
+  </div>
+
+  <script>
+    function appState() {
+      return {
+        darkMode: true,
+        documents: [],
+        summary: { total: 0, aboutToExpire: 0, expired: 0 },
+        viewMode: 'table',
+        page: 1,
+        totalPages: 1,
+        total: 0,
+        filters: {
+          keyword: '',
+          status: '',
+          issueStart: '',
+          issueEnd: '',
+          expiryStart: '',
+          expiryEnd: '',
+          sortField: '',
+          sortDirection: 'asc',
+        },
+        settings: {},
+        adminPassword: '',
+        isLocked: true,
+        showForm: false,
+        showDetail: false,
+        showSettings: false,
+        selected: null,
+        form: {
+          id: null,
+          title: '',
+          category: '',
+          tags: '',
+          owner: '',
+          issueDate: '',
+          expiryDate: '',
+          remindDays: 0,
+          status: 'active',
+          location: '',
+          source: '',
+          notes: '',
+          driveFiles: [],
+        },
+        toasts: [],
+        init() {
+          console.log('init app');
+          this.fetchSettings();
+          this.loadDocuments();
+        },
+        toggleDarkMode() {
+          this.darkMode = !this.darkMode;
+        },
+        formatDate(value) {
+          if (!value) return '';
+          try {
+            return new Date(value).toISOString().slice(0, 10);
+          } catch (e) {
+            return value;
+          }
+        },
+        statusBadge(status) {
+          switch ((status || '').toLowerCase()) {
+            case 'active': return 'bg-success/20 text-success';
+            case 'archived': return 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
+            case 'expired': return 'bg-danger/20 text-danger';
+            default: return 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
+          }
+        },
+        computeExpiryBadge(doc) {
+          if (!doc.expiryDate) return null;
+          const diff = Math.ceil((new Date(doc.expiryDate) - new Date()) / (1000 * 3600 * 24));
+          if (diff < 0) return { label: 'หมดอายุ', class: 'bg-danger/20 text-danger' };
+          if (diff <= doc.remindDays) return { label: 'ใกล้หมด', class: 'bg-warning/20 text-warning' };
+          return null;
+        },
+        refresh() {
+          this.loadDocuments();
+        },
+        loadDocuments(page = this.page) {
+          const payload = {
+            page: page,
+            pageSize: 20,
+            keyword: this.filters.keyword,
+            status: this.filters.status,
+            issueRange: { start: this.filters.issueStart, end: this.filters.issueEnd },
+            expiryRange: { start: this.filters.expiryStart, end: this.filters.expiryEnd },
+            sort: { field: this.filters.sortField, direction: this.filters.sortDirection },
+          };
+          console.log('loadDocuments', payload);
+          this.callApi('list', payload)
+            .then((res) => {
+              this.documents = (res.items || []).map((doc) => {
+                doc.expiryBadge = this.computeExpiryBadge(doc);
+                return doc;
+              });
+              this.summary = res.summary || this.summary;
+              this.page = res.page;
+              this.totalPages = res.totalPages;
+              this.total = res.total;
+            })
+            .catch((err) => this.notify(err.message || 'โหลดข้อมูลไม่สำเร็จ'));
+        },
+        changePage(newPage) {
+          if (newPage < 1 || newPage > this.totalPages) return;
+          this.loadDocuments(newPage);
+        },
+        applyFilters() {
+          this.loadDocuments(1);
+        },
+        openCreateForm() {
+          if (this.isLocked) {
+            this.notify('กรุณาปลดล็อกก่อนแก้ไข');
+            return;
+          }
+          this.resetForm();
+          this.showForm = true;
+        },
+        openEditForm(doc) {
+          if (this.isLocked) {
+            this.notify('โหมดผู้ดูแลถูกล็อก');
+            return;
+          }
+          this.resetForm();
+          this.form.id = doc.id;
+          this.form.title = doc.title;
+          this.form.category = doc.category;
+          this.form.tags = doc.tags.join(', ');
+          this.form.owner = doc.owner;
+          this.form.issueDate = doc.issueDate ? doc.issueDate.slice(0, 10) : '';
+          this.form.expiryDate = doc.expiryDate ? doc.expiryDate.slice(0, 10) : '';
+          this.form.remindDays = doc.remindDays;
+          this.form.status = doc.status;
+          this.form.location = doc.location;
+          this.form.source = doc.source;
+          this.form.notes = doc.notes;
+          this.form.driveFiles = doc.driveFiles ? JSON.parse(JSON.stringify(doc.driveFiles)) : [];
+          this.showForm = true;
+        },
+        openSettings() {
+          this.showSettings = true;
+        },
+        closeSettings() {
+          this.showSettings = false;
+        },
+        resetForm() {
+          this.form = {
+            id: null,
+            title: '',
+            category: '',
+            tags: '',
+            owner: '',
+            issueDate: '',
+            expiryDate: '',
+            remindDays: 0,
+            status: 'active',
+            location: '',
+            source: '',
+            notes: '',
+            driveFiles: [],
+          };
+        },
+        closeForm() {
+          this.showForm = false;
+        },
+        viewDetail(doc) {
+          this.selected = doc;
+          this.showDetail = true;
+        },
+        closeDetail() {
+          this.showDetail = false;
+          this.selected = null;
+        },
+        submitForm() {
+          const payload = {
+            title: this.form.title,
+            category: this.form.category,
+            tags: this.form.tags ? this.form.tags.split(',').map(t => t.trim()).filter(Boolean) : [],
+            owner: this.form.owner,
+            issueDate: this.form.issueDate,
+            expiryDate: this.form.expiryDate,
+            remindDays: this.form.remindDays || 0,
+            status: this.form.status,
+            location: this.form.location,
+            source: this.form.source,
+            notes: this.form.notes,
+            driveFiles: this.form.driveFiles,
+          };
+          const action = this.form.id ? 'update' : 'create';
+          if (this.form.id) payload.id = this.form.id;
+          console.log('submitForm', action, payload);
+          this.callApi(action, payload)
+            .then(() => {
+              this.notify('บันทึกข้อมูลสำเร็จ');
+              this.showForm = false;
+              this.loadDocuments();
+            })
+            .catch((err) => this.notify(err.message || 'เกิดข้อผิดพลาด'));
+        },
+        archiveDocument(doc) {
+          if (!confirm('ต้องการ archive รายการนี้?')) return;
+          this.callApi('archive', { id: doc.id })
+            .then(() => {
+              this.notify('Archive สำเร็จ');
+              this.loadDocuments();
+            })
+            .catch((err) => this.notify(err.message || 'Archive ไม่สำเร็จ'));
+        },
+        handleDroppedFiles(event) {
+          const files = event.dataTransfer.files;
+          this.uploadSelectedFiles(files);
+        },
+        handleFileSelection(event) {
+          const files = event.target.files;
+          this.uploadSelectedFiles(files);
+          event.target.value = '';
+        },
+        uploadSelectedFiles(fileList) {
+          if (!fileList || !fileList.length) return;
+          const readers = [];
+          for (let i = 0; i < fileList.length; i++) {
+            const file = fileList[i];
+            readers.push(this.fileToBase64(file));
+          }
+          Promise.all(readers).then((encoded) => {
+            const filesPayload = encoded.map(f => ({ name: f.name, base64: f.base64.split(',')[1], type: f.type }));
+            this.callApi('upload', { files: filesPayload })
+              .then((res) => {
+                const uploaded = res.files || [];
+                this.form.driveFiles = this.form.driveFiles.concat(uploaded);
+                this.notify('อัปโหลดไฟล์ ' + uploaded.length + ' ไฟล์สำเร็จ');
+              })
+              .catch((err) => this.notify(err.message || 'อัปโหลดไม่สำเร็จ'));
+          });
+        },
+        fileToBase64(file) {
+          return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve({ name: file.name, base64: reader.result, type: file.type });
+            reader.onerror = reject;
+            reader.readAsDataURL(file);
+          });
+        },
+        removeAttachment(file) {
+          this.form.driveFiles = this.form.driveFiles.filter(f => f.id !== file.id);
+        },
+        fetchSettings() {
+          this.callApi('settings', {})
+            .then((res) => { this.settings = res; })
+            .catch(() => {});
+        },
+        unlockAdmin() {
+          if (!this.adminPassword) {
+            this.notify('กรุณากรอกรหัสผ่านผู้ดูแล');
+            return;
+          }
+          this.callApi('verifyAdmin', { password: this.adminPassword })
+            .then(() => {
+              this.isLocked = false;
+              this.notify('ปลดล็อกโหมดผู้ดูแลแล้ว');
+            })
+            .catch((err) => {
+              this.notify(err.message || 'รหัสผ่านไม่ถูกต้อง');
+            });
+        },
+        lockAdmin() {
+          this.isLocked = true;
+          this.adminPassword = '';
+          this.notify('ล็อกโหมดผู้ดูแล');
+        },
+        createTriggers() {
+          this.callApi('createTriggers', {})
+            .then(() => this.notify('สร้าง Trigger แล้ว'))
+            .catch((err) => this.notify(err.message || 'สร้าง Trigger ไม่สำเร็จ'));
+        },
+        deleteTriggers() {
+          this.callApi('deleteTriggers', {})
+            .then(() => this.notify('ลบ Trigger แล้ว'))
+            .catch((err) => this.notify(err.message || 'ลบ Trigger ไม่สำเร็จ'));
+        },
+        manualBackup() {
+          this.callApi('backupSheet', {})
+            .then((res) => this.notify('สำรองสำเร็จ: ' + res.backupUrl))
+            .catch((err) => this.notify(err.message || 'สำรองไม่สำเร็จ'));
+        },
+        downloadExport(type) {
+          this.callApi(type === 'csv' ? 'exportCSV' : 'exportJSON', {})
+            .then((res) => {
+              const blob = new Blob([res.content], { type: res.mimeType });
+              const link = document.createElement('a');
+              link.href = URL.createObjectURL(blob);
+              link.download = res.filename;
+              link.click();
+              URL.revokeObjectURL(link.href);
+            })
+            .catch((err) => this.notify(err.message || 'Export ล้มเหลว'));
+        },
+        ping() {
+          this.callApi('ping', {})
+            .then((res) => this.notify('ระบบพร้อมใช้งาน: ' + res.timestamp))
+            .catch((err) => this.notify(err.message || 'Ping ล้มเหลว'));
+        },
+        printDocument(doc) {
+          if (!doc) return;
+          const printable = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Print ${doc.title}</title>
+            <style>body{font-family:sans-serif;padding:20px;}table{width:100%;border-collapse:collapse;}td{border:1px solid #ccc;padding:8px;}
+            h1{margin-bottom:10px;} .tags span{display:inline-block;margin-right:6px;padding:2px 6px;border-radius:4px;background:#e2e8f0;}</style>
+            </head><body><h1>${doc.title}</h1><table>
+            <tr><td>หมวดหมู่</td><td>${doc.category || ''}</td></tr>
+            <tr><td>เจ้าของ</td><td>${doc.owner || ''}</td></tr>
+            <tr><td>วันที่ออก</td><td>${this.formatDate(doc.issueDate)}</td></tr>
+            <tr><td>วันหมดอายุ</td><td>${this.formatDate(doc.expiryDate)}</td></tr>
+            <tr><td>แจ้งเตือนล่วงหน้า</td><td>${doc.remindDays || 0} วัน</td></tr>
+            <tr><td>สถานะ</td><td>${doc.status}</td></tr>
+            <tr><td>สถานที่เก็บ</td><td>${doc.location || ''}</td></tr>
+            <tr><td>แหล่งที่มา</td><td>${doc.source || ''}</td></tr>
+            <tr><td>หมายเหตุ</td><td>${doc.notes || ''}</td></tr>
+            </table><h3>ไฟล์แนบ</h3><ul>${(doc.driveFiles || []).map(f => `<li><a href="${f.url}" target="_blank">${f.name || f.id}</a></li>`).join('')}</ul>
+            </body></html>`;
+          const printWindow = window.open('', '_blank');
+          printWindow.document.write(printable);
+          printWindow.document.close();
+          printWindow.focus();
+          printWindow.print();
+        },
+        copyToClipboard(text) {
+          navigator.clipboard.writeText(text).then(() => this.notify('คัดลอกแล้ว'));
+        },
+        notify(message) {
+          const toast = { id: Date.now() + Math.random(), message };
+          this.toasts.push(toast);
+          setTimeout(() => {
+            this.toasts = this.toasts.filter(t => t.id !== toast.id);
+          }, 4000);
+        },
+        callApi(action, payload) {
+          return new Promise((resolve, reject) => {
+            google.script.run
+              .withSuccessHandler((res) => {
+                console.log('API success', action, res);
+                resolve(res);
+              })
+              .withFailureHandler((err) => {
+                console.error('API error', action, err);
+                if (err && err.message) {
+                  reject(err);
+                } else {
+                  reject(new Error('API error'));
+                }
+              })
+              .handleApiRequest(action, payload || {});
+          });
+        },
+      }
+    }
+  </script>
+</body>
+</html>
