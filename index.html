@@ -24,148 +24,431 @@
     .scrollbar-thin::-webkit-scrollbar { width: 6px; height: 6px; }
     .scrollbar-thin::-webkit-scrollbar-track { background: transparent; }
     .scrollbar-thin::-webkit-scrollbar-thumb { background-color: rgba(148, 163, 184, 0.5); border-radius: 9999px; }
+    [x-cloak] { display: none !important; }
   </style>
 </head>
-<body class="min-h-screen transition-colors" :class="darkMode ? 'bg-slate-900 text-slate-100' : 'bg-slate-100 text-slate-900'">
-  <div class="max-w-7xl mx-auto px-4 py-6 space-y-6">
-    <header class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
-      <div>
-        <h1 class="text-3xl font-bold">{{APP_NAME}}</h1>
-        <p class="text-slate-600 dark:text-slate-400">ระบบบันทึกและจัดการเอกสารส่วนตัว เชื่อม Google Drive + Google Sheets</p>
+<body class="min-h-screen transition-colors" :class="darkMode ? 'bg-slate-950 text-slate-100' : 'bg-slate-100 text-slate-900'">
+  <div class="absolute inset-0 -z-10 bg-gradient-to-br from-primary/5 via-slate-100 to-slate-200 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950"></div>
+  <div class="max-w-7xl mx-auto px-4 py-10 space-y-8">
+    <header class="rounded-3xl bg-white/80 dark:bg-slate-900/40 backdrop-blur border border-white/60 dark:border-slate-800/70 shadow-xl p-6 lg:p-8 space-y-6">
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+        <div class="space-y-5">
+          <div class="inline-flex items-center gap-3 text-[0.65rem] font-semibold tracking-[0.4em] uppercase text-primary dark:text-primary/80">
+            <span class="w-10 h-10 rounded-full bg-primary/10 text-primary flex items-center justify-center shadow-inner">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 3h15a1.5 1.5 0 011.5 1.5v15a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 19.5v-15A1.5 1.5 0 014.5 3zm3 4.5h9M7.5 12h9M7.5 15h5.25" />
+              </svg>
+            </span>
+            <span>Document Intelligence Hub</span>
+          </div>
+          <div>
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">{{APP_NAME}}</h1>
+            <p class="mt-3 text-base md:text-lg text-slate-600 dark:text-slate-300 max-w-2xl">
+              ระบบจัดเก็บเอกสารที่รวมศูนย์ไฟล์จาก Google Drive พร้อมเมตาดาต้าใน Google Sheets ครบทั้งอัปโหลด ค้นหา แจ้งเตือน และสำรองข้อมูลในที่เดียว
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold transition"
+              :class="settings.isSheetReady ? 'border-success/40 bg-success/10 text-success' : 'border-warning/40 bg-warning/10 text-warning'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m3.75-5.25h-13.5c-.414 0-.75.336-.75.75v13.5c0 .414.336.75.75.75h13.5c.414 0 .75-.336.75-.75v-13.5c0-.414-.336-.75-.75-.75z" />
+              </svg>
+              <span>Sheet: <span x-text="settings.isSheetReady ? 'พร้อม' : 'รอตั้งค่า'"></span></span>
+            </span>
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold transition"
+              :class="settings.isFolderReady ? 'border-success/40 bg-success/10 text-success' : 'border-warning/40 bg-warning/10 text-warning'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M3 7.5A1.5 1.5 0 014.5 6h5.379a1.5 1.5 0 011.06.44l1.122 1.12a1.5 1.5 0 001.06.44H19.5A1.5 1.5 0 0121 9v8.25a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 17.25V7.5z" />
+              </svg>
+              <span>Drive: <span x-text="settings.isFolderReady ? 'พร้อม' : 'รอตั้งค่า'"></span></span>
+            </span>
+            <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs font-semibold transition"
+              :class="isLocked ? 'border-slate-400 bg-slate-100 text-slate-600 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300' : 'border-success/40 bg-success/10 text-success'">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M16.5 10.5V9a4.5 4.5 0 00-9 0v1.5m-.75 0h10.5a.75.75 0 01.75.75v7.5a.75.75 0 01-.75.75h-10.5a.75.75 0 01-.75-.75v-7.5a.75.75 0 01.75-.75z" />
+              </svg>
+              <span x-text="isLocked ? 'โหมดผู้ดูแล: ล็อก' : 'โหมดผู้ดูแล: ปลดล็อก'"></span>
+            </span>
+          </div>
+        </div>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <button @click="toggleDarkMode" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/70 hover:-translate-y-0.5 hover:shadow-lg transition disabled:opacity-50">
+            <span class="relative flex h-4 w-4 items-center justify-center" x-cloak>
+              <svg x-show="!darkMode" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M10 15a5 5 0 100-10 5 5 0 000 10z" />
+              </svg>
+              <svg x-show="darkMode" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                <path fill-rule="evenodd" d="M17.293 13.293a8 8 0 01-10.586-10.586 1 1 0 00-1.32-1.32A10 10 0 1018.613 14.613a1 1 0 00-1.32-1.32z" clip-rule="evenodd" />
+              </svg>
+            </span>
+            <span x-text="darkMode ? 'เปิดโหมดสว่าง' : 'เปิดโหมดมืด'"></span>
+          </button>
+          <button @click="refresh" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 hover:-translate-y-0.5 hover:shadow-lg transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.477V4.87M21 12a9 9 0 11-3.86-7.385" />
+            </svg>
+            <span>รีเฟรชข้อมูล</span>
+          </button>
+          <button @click="openCreateForm" :disabled="isLocked" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gradient-to-r from-success to-emerald-400 text-white font-semibold shadow-lg shadow-emerald-500/30 hover:shadow-xl transition disabled:opacity-40 disabled:cursor-not-allowed">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+            </svg>
+            <span>เพิ่มเอกสาร</span>
+          </button>
+          <button @click="openSettings" class="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800/70 hover:-translate-y-0.5 hover:shadow-lg transition">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317a1.5 1.5 0 012.35 0l.715.894a1.5 1.5 0 001.463.51l1.137-.227a1.5 1.5 0 011.742 1.742l-.227 1.137a1.5 1.5 0 00.51 1.463l.894.715a1.5 1.5 0 010 2.35l-.894.715a1.5 1.5 0 00-.51 1.463l.227 1.137a1.5 1.5 0 01-1.742 1.742l-1.137-.227a1.5 1.5 0 00-1.463.51l-.715.894a1.5 1.5 0 01-2.35 0l-.715-.894a1.5 1.5 0 00-1.463-.51l-1.137.227a1.5 1.5 0 01-1.742-1.742l.227-1.137a1.5 1.5 0 00-.51-1.463l-.894-.715a1.5 1.5 0 010-2.35l.894-.715a1.5 1.5 0 00.51-1.463l-.227-1.137a1.5 1.5 0 011.742-1.742l1.137.227a1.5 1.5 0 001.463-.51l.715-.894z" />
+            </svg>
+            <span>ตั้งค่า</span>
+          </button>
+        </div>
       </div>
-      <div class="flex flex-wrap gap-2 items-center">
-        <button @click="toggleDarkMode" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700 transition">สลับโหมด</button>
-        <button @click="refresh" class="px-3 py-2 rounded bg-primary/20 text-primary hover:bg-primary/30">รีเฟรชข้อมูล</button>
-        <button @click="openCreateForm" :disabled="isLocked" class="px-3 py-2 rounded bg-success/20 text-success hover:bg-success/30 disabled:opacity-40 disabled:cursor-not-allowed">+ เพิ่มเอกสาร</button>
-        <button @click="openSettings" class="px-3 py-2 rounded bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 hover:bg-slate-300 dark:hover:bg-slate-700">ตั้งค่า</button>
+      <div class="rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-700/70 bg-white/70 dark:bg-slate-900/40 p-4 sm:p-5 text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex flex-wrap gap-3 items-center justify-between">
+        <div class="flex items-center gap-2">
+          <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 9.75l7.5 7.5 7.5-7.5" />
+            </svg>
+          </span>
+          <div>
+            <div class="font-semibold text-slate-900 dark:text-white">ฐานข้อมูลพร้อมใช้งานหรือไม่?</div>
+            <p class="text-xs sm:text-sm" x-text="settings.readyForData ? 'เชื่อมต่อชีตเรียบร้อย สามารถเรียกดูข้อมูลได้ทันที' : 'โปรดสร้างหรือเชื่อมต่อชีต และโฟลเดอร์จากหน้า Settings ก่อนเริ่มใช้งาน'">
+            </p>
+          </div>
+        </div>
+        <button @click="openSettings" class="inline-flex items-center gap-2 rounded-full border border-primary/40 bg-primary/10 px-3 py-2 text-primary hover:bg-primary/20">
+          <span>จัดการการตั้งค่า</span>
+          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+          </svg>
+        </button>
       </div>
     </header>
 
-    <section class="grid md:grid-cols-3 gap-4" id="dashboard">
-      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
-        <h3 class="text-sm uppercase text-slate-400">ทั้งหมด</h3>
-        <p class="text-3xl font-semibold" x-text="summary.total"></p>
+    <section class="grid gap-4 md:grid-cols-3" id="dashboard">
+      <div class="relative overflow-hidden rounded-3xl border border-white/60 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/40 backdrop-blur p-6 shadow-lg">
+        <div class="absolute inset-0 bg-gradient-to-br from-primary/10 via-primary/0 to-transparent dark:from-primary/20 opacity-70 pointer-events-none"></div>
+        <div class="relative flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-slate-500 dark:text-slate-400">เอกสารทั้งหมด</p>
+            <p class="mt-2 text-4xl font-bold text-slate-900 dark:text-white" x-text="summary.total"></p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">จำนวนรายการทั้งหมดในระบบ</p>
+          </div>
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 6.75h15m-15 4.5h15m-15 4.5H12" />
+            </svg>
+          </span>
+        </div>
+        <div class="relative mt-6 rounded-xl border border-dashed border-primary/30 bg-primary/5 px-4 py-3 text-xs text-primary">
+          <div class="font-semibold">สถานะล่าสุด</div>
+          <p>รีเฟรชข้อมูลล่าสุดด้วยปุ่มด้านบนเพื่อให้ตัวเลขอัปเดตตลอดเวลา</p>
+        </div>
       </div>
-      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
-        <h3 class="text-sm uppercase text-warning">ใกล้หมดอายุ</h3>
-        <p class="text-3xl font-semibold text-warning" x-text="summary.aboutToExpire"></p>
+      <div class="relative overflow-hidden rounded-3xl border border-white/60 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/40 backdrop-blur p-6 shadow-lg">
+        <div class="absolute inset-0 bg-gradient-to-br from-warning/10 via-warning/0 to-transparent dark:from-warning/10 opacity-60 pointer-events-none"></div>
+        <div class="relative flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-warning/80">ใกล้หมดอายุ</p>
+            <p class="mt-2 text-4xl font-bold text-warning" x-text="summary.aboutToExpire"></p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">ควรติดตามเพื่อเตรียมต่ออายุหรือจัดการ</p>
+          </div>
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-warning/10 text-warning">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3h.008v.008H12V15z" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M12 3.75c-4.556 0-8.25 3.694-8.25 8.25s3.694 8.25 8.25 8.25 8.25-3.694 8.25-8.25S16.556 3.75 12 3.75z" />
+            </svg>
+          </span>
+        </div>
+        <div class="relative mt-6 flex items-center justify-between rounded-xl border border-warning/30 bg-warning/5 px-4 py-3 text-xs text-warning">
+          <span>ตั้งค่าจำนวนวันแจ้งเตือนในแต่ละรายการเพื่อไม่ให้พลาด</span>
+          <button @click="filters.status = 'active'; applyFilters()" class="rounded-full bg-warning/20 px-3 py-1 text-[11px] font-semibold hover:bg-warning/30">ดูรายการ</button>
+        </div>
       </div>
-      <div class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow">
-        <h3 class="text-sm uppercase text-danger">หมดอายุ</h3>
-        <p class="text-3xl font-semibold text-danger" x-text="summary.expired"></p>
+      <div class="relative overflow-hidden rounded-3xl border border-white/60 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/40 backdrop-blur p-6 shadow-lg">
+        <div class="absolute inset-0 bg-gradient-to-br from-danger/10 via-danger/0 to-transparent dark:from-danger/20 opacity-60 pointer-events-none"></div>
+        <div class="relative flex items-start justify-between">
+          <div>
+            <p class="text-xs font-semibold uppercase tracking-widest text-danger/80">หมดอายุแล้ว</p>
+            <p class="mt-2 text-4xl font-bold text-danger" x-text="summary.expired"></p>
+            <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">ตรวจสอบเอกสารที่ต้องจัดการหรือย้ายสถานะ</p>
+          </div>
+          <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-danger/10 text-danger">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 9.75l4.5 4.5m0-4.5l-4.5 4.5" />
+              <path stroke-linecap="round" stroke-linejoin="round" d="M5.25 6.75l.66 9.24a2.25 2.25 0 002.244 2.01h7.692a2.25 2.25 0 002.244-2.01l.66-9.24a1.5 1.5 0 00-1.494-1.59H6.744a1.5 1.5 0 00-1.494 1.59z" />
+            </svg>
+          </span>
+        </div>
+        <div class="relative mt-6 flex items-center justify-between rounded-xl border border-danger/30 bg-danger/5 px-4 py-3 text-xs text-danger">
+          <span>เปิดดูรายละเอียดและปรับสถานะ หรืออัปเดตไฟล์ล่าสุด</span>
+          <button @click="filters.status = 'expired'; applyFilters()" class="rounded-full bg-danger/20 px-3 py-1 text-[11px] font-semibold hover:bg-danger/30">กรองทันที</button>
+        </div>
       </div>
     </section>
 
-    <section class="bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-lg shadow">
-      <div class="border-b border-slate-200 dark:border-slate-700 px-4 py-3 flex flex-wrap gap-3 items-center justify-between">
-        <div class="flex gap-2 items-center">
-          <button @click="viewMode = 'table'" :class="viewMode === 'table' ? 'bg-primary/30 text-primary' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" class="px-3 py-2 rounded">ตาราง</button>
-          <button @click="viewMode = 'card'" :class="viewMode === 'card' ? 'bg-primary/30 text-primary' : 'bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-300'" class="px-3 py-2 rounded">การ์ด</button>
+    <section class="rounded-3xl border border-white/60 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/40 backdrop-blur shadow-xl">
+      <div class="border-b border-slate-200/60 dark:border-slate-700/60 px-6 py-6 space-y-4">
+        <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+          <div class="flex flex-wrap items-center gap-3">
+            <div class="inline-flex rounded-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900/60 p-1">
+              <button @click="viewMode = 'table'" class="px-4 py-2 text-xs font-semibold rounded-full transition"
+                :class="viewMode === 'table' ? 'bg-primary text-white shadow' : 'text-slate-500 dark:text-slate-400'">มุมมองตาราง</button>
+              <button @click="viewMode = 'card'" class="px-4 py-2 text-xs font-semibold rounded-full transition"
+                :class="viewMode === 'card' ? 'bg-primary text-white shadow' : 'text-slate-500 dark:text-slate-400'">มุมมองการ์ด</button>
+            </div>
+            <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400">
+              ผลลัพธ์ <span class="font-semibold text-primary" x-text="total"></span> รายการ
+            </div>
+          </div>
+          <div class="flex flex-wrap gap-2 text-xs font-semibold">
+            <button @click="filters.status = ''; applyFilters()" class="rounded-full border px-3 py-1 transition"
+              :class="filters.status === '' ? 'border-primary/40 bg-primary/15 text-primary' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'">ทั้งหมด</button>
+            <button @click="filters.status = 'active'; applyFilters()" class="rounded-full border px-3 py-1 transition"
+              :class="filters.status === 'active' ? 'border-success/40 bg-success/15 text-success' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'">Active</button>
+            <button @click="filters.status = 'archived'; applyFilters()" class="rounded-full border px-3 py-1 transition"
+              :class="filters.status === 'archived' ? 'border-slate-400 bg-slate-200/70 text-slate-600 dark:bg-slate-800/60 dark:text-slate-300' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'">Archived</button>
+            <button @click="filters.status = 'expired'; applyFilters()" class="rounded-full border px-3 py-1 transition"
+              :class="filters.status === 'expired' ? 'border-danger/40 bg-danger/15 text-danger' : 'border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400'">Expired</button>
+          </div>
         </div>
-        <div class="flex gap-2 items-center">
-          <input type="text" x-model="filters.keyword" @input.debounce.500ms="applyFilters" placeholder="ค้นหา..." class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" />
-          <select x-model="filters.status" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
-            <option value="">สถานะทั้งหมด</option>
-            <option value="active">Active</option>
-            <option value="archived">Archived</option>
-            <option value="expired">Expired</option>
-          </select>
-          <input type="date" x-model="filters.issueStart" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Issue start" />
-          <input type="date" x-model="filters.issueEnd" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Issue end" />
-          <input type="date" x-model="filters.expiryStart" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Expiry start" />
-          <input type="date" x-model="filters.expiryEnd" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm" title="Expiry end" />
-          <select x-model="filters.sortField" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
-            <option value="">เรียงตาม</option>
-            <option value="title">ชื่อ</option>
-            <option value="category">หมวดหมู่</option>
-            <option value="expiryDate">วันหมดอายุ</option>
-          </select>
-          <select x-model="filters.sortDirection" @change="applyFilters" class="bg-slate-100 dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-2 text-sm">
-            <option value="asc">น้อย→มาก</option>
-            <option value="desc">มาก→น้อย</option>
-          </select>
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4 items-end">
+          <label class="relative flex flex-col gap-2 xl:col-span-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">คำค้นหา</span>
+            <div class="relative">
+              <span class="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.35-4.35M11.25 18a6.75 6.75 0 100-13.5 6.75 6.75 0 000 13.5z" />
+                </svg>
+              </span>
+              <input type="text" x-model="filters.keyword" @input.debounce.500ms="applyFilters" placeholder="ค้นหาชื่อ แท็ก หมายเหตุ หรือเจ้าของ"
+                class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-10 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </label>
+          <label class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">หมวดหมู่</span>
+            <div>
+              <input list="categoryOptions" x-model="filters.category" @input.debounce.500ms="applyFilters" placeholder="เช่น ส่วนตัว, ประกัน"
+                class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-4 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              <datalist id="categoryOptions">
+                <template x-for="category in categoryOptions" :key="category">
+                  <option x-text="category"></option>
+                </template>
+              </datalist>
+            </div>
+          </label>
+          <label class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">เรียงตาม</span>
+            <select x-model="filters.sortField" @change="applyFilters"
+              class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-4 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30">
+              <option value="">ค่าเริ่มต้น</option>
+              <option value="title">ชื่อ</option>
+              <option value="category">หมวดหมู่</option>
+              <option value="expiryDate">วันหมดอายุ</option>
+            </select>
+          </label>
+          <label class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">ทิศทาง</span>
+            <select x-model="filters.sortDirection" @change="applyFilters"
+              class="w-full rounded-2xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-4 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30">
+              <option value="asc">จากน้อยไปมาก</option>
+              <option value="desc">จากมากไปน้อย</option>
+            </select>
+          </label>
+          <div class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">ช่วงวันที่ออก</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="date" x-model="filters.issueStart" @change="applyFilters" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              <input type="date" x-model="filters.issueEnd" @change="applyFilters" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
+          <div class="flex flex-col gap-2">
+            <span class="text-xs font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">ช่วงวันหมดอายุ</span>
+            <div class="grid grid-cols-2 gap-2">
+              <input type="date" x-model="filters.expiryStart" @change="applyFilters" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+              <input type="date" x-model="filters.expiryEnd" @change="applyFilters" class="rounded-xl border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-900/60 px-3 py-2 text-sm focus:border-primary focus:ring-2 focus:ring-primary/30" />
+            </div>
+          </div>
         </div>
       </div>
-      <div class="p-4">
-        <template x-if="viewMode === 'table'">
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-slate-700 text-sm">
-              <thead>
-                <tr class="bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase text-xs">
-                  <th class="px-3 py-2 text-left">ชื่อ</th>
-                  <th class="px-3 py-2 text-left">หมวดหมู่</th>
-                  <th class="px-3 py-2 text-left">เจ้าของ</th>
-                  <th class="px-3 py-2 text-left">วันออก</th>
-                  <th class="px-3 py-2 text-left">วันหมดอายุ</th>
-                  <th class="px-3 py-2 text-left">สถานะ</th>
-                  <th class="px-3 py-2 text-right">การจัดการ</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-slate-200 dark:divide-slate-800">
-                <template x-for="doc in documents" :key="doc.id">
-                  <tr class="hover:bg-slate-100 dark:hover:bg-slate-900/60">
-                    <td class="px-3 py-2">
-                      <div class="font-medium" x-text="doc.title"></div>
-                      <div class="text-xs text-slate-500 dark:text-slate-400" x-text="doc.tags.join(', ')"></div>
-                    </td>
-                    <td class="px-3 py-2" x-text="doc.category"></td>
-                    <td class="px-3 py-2" x-text="doc.owner"></td>
-                    <td class="px-3 py-2" x-text="formatDate(doc.issueDate)"></td>
-                    <td class="px-3 py-2">
-                      <div class="flex items-center gap-2">
-                        <span x-text="formatDate(doc.expiryDate)"></span>
-                        <span x-show="doc.expiryBadge" :class="doc.expiryBadge?.class" class="text-xs px-2 py-0.5 rounded-full" x-text="doc.expiryBadge?.label"></span>
-                      </div>
-                    </td>
-                    <td class="px-3 py-2">
-                      <span :class="statusBadge(doc.status)" class="px-2 py-0.5 rounded-full text-xs font-semibold" x-text="doc.status"></span>
-                    </td>
-                    <td class="px-3 py-2 text-right space-x-2">
-                      <button @click="viewDetail(doc)" class="px-2 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded text-xs">รายละเอียด</button>
-                      <button @click="openEditForm(doc)" :disabled="isLocked" class="px-2 py-1 bg-primary/30 text-primary rounded text-xs disabled:opacity-40">แก้ไข</button>
-                      <button @click="archiveDocument(doc)" :disabled="isLocked" class="px-2 py-1 bg-danger/20 text-danger rounded text-xs disabled:opacity-40">Archive</button>
-                    </td>
+      <div class="p-6 space-y-6">
+        <template x-if="isLoading">
+          <div class="flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/40 py-16 text-center text-sm text-slate-500 dark:text-slate-400">
+            <div class="h-10 w-10 rounded-full border-2 border-primary border-t-transparent animate-spin"></div>
+            <p>กำลังโหลดข้อมูลจาก Google Sheets...</p>
+          </div>
+        </template>
+
+        <template x-if="!isLoading && documents.length && viewMode === 'table'">
+          <div class="overflow-hidden rounded-2xl border border-slate-200/60 dark:border-slate-700/60 bg-white dark:bg-slate-900/40">
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-sm">
+                <thead class="bg-slate-900/5 dark:bg-slate-800/60 text-slate-500 dark:text-slate-400 uppercase text-[11px] tracking-[0.2em]">
+                  <tr>
+                    <th class="px-5 py-3 text-left font-semibold">เอกสาร</th>
+                    <th class="px-5 py-3 text-left font-semibold">หมวดหมู่ / เจ้าของ</th>
+                    <th class="px-5 py-3 text-left font-semibold">วันที่สำคัญ</th>
+                    <th class="px-5 py-3 text-left font-semibold">สถานะ</th>
+                    <th class="px-5 py-3 text-left font-semibold">ไฟล์</th>
+                    <th class="px-5 py-3 text-left font-semibold">อัปเดตล่าสุด</th>
+                    <th class="px-5 py-3 text-right font-semibold">การจัดการ</th>
                   </tr>
-                </template>
-              </tbody>
-            </table>
-            <div class="flex justify-between items-center text-sm text-slate-600 dark:text-slate-400 mt-4">
-              <div>หน้า <span x-text="page"></span> / <span x-text="totalPages"></span> (ทั้งหมด <span x-text="total"></span> รายการ)</div>
-              <div class="flex gap-2">
-                <button @click="changePage(page-1)" :disabled="page<=1" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded disabled:opacity-40">ก่อนหน้า</button>
-                <button @click="changePage(page+1)" :disabled="page>=totalPages" class="px-3 py-1 bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-100 rounded disabled:opacity-40">ถัดไป</button>
-              </div>
+                </thead>
+                <tbody class="divide-y divide-slate-200/60 dark:divide-slate-800/80 text-slate-700 dark:text-slate-200">
+                  <template x-for="doc in documents" :key="doc.id">
+                    <tr class="hover:bg-primary/5 dark:hover:bg-primary/10 transition">
+                      <td class="px-5 py-4 align-top">
+                        <div class="font-semibold text-slate-900 dark:text-white" x-text="doc.title"></div>
+                        <div class="mt-1 text-xs text-slate-500 dark:text-slate-400" x-show="doc.notes" x-text="doc.notes"></div>
+                        <div class="mt-2 flex flex-wrap gap-1.5">
+                          <template x-for="tag in doc.tags" :key="tag">
+                            <span class="inline-flex items-center rounded-full bg-slate-200/80 dark:bg-slate-800 px-2 py-0.5 text-[11px] text-slate-600 dark:text-slate-300" x-text="tag"></span>
+                          </template>
+                        </div>
+                      </td>
+                      <td class="px-5 py-4 align-top">
+                        <div class="text-sm font-medium" x-text="doc.category || '-' "></div>
+                        <div class="text-xs text-slate-500 dark:text-slate-400" x-text="doc.owner || '-' "></div>
+                      </td>
+                      <td class="px-5 py-4 align-top text-xs text-slate-500 dark:text-slate-400">
+                        <div>ออก: <span class="font-medium text-slate-700 dark:text-slate-200" x-text="formatDate(doc.issueDate) || '-' "></span></div>
+                        <div class="mt-1 flex items-center gap-2">หมดอายุ:
+                          <span class="font-medium text-slate-700 dark:text-slate-200" x-text="formatDate(doc.expiryDate) || '-' "></span>
+                          <span x-show="doc.expiryBadge" :class="doc.expiryBadge?.class" class="text-[10px] px-2 py-0.5 rounded-full font-semibold" x-text="doc.expiryBadge?.label"></span>
+                        </div>
+                      </td>
+                      <td class="px-5 py-4 align-top">
+                        <span :class="statusBadge(doc.status)" class="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wide" x-text="doc.status"></span>
+                      </td>
+                      <td class="px-5 py-4 align-top text-xs text-slate-500 dark:text-slate-400">
+                        <div class="flex items-center gap-2">
+                          <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-primary/10 text-primary font-semibold" x-text="doc.driveFiles?.length || 0"></span>
+                          <button @click="viewDetail(doc)" class="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-[11px] text-primary hover:bg-primary/20">ดูไฟล์</button>
+                        </div>
+                      </td>
+                      <td class="px-5 py-4 align-top text-xs text-slate-500 dark:text-slate-400">
+                        <div x-text="doc.updatedAt ? doc.updatedAt.replace('T', ' ').slice(0, 16) : '-' "></div>
+                      </td>
+                      <td class="px-5 py-4 align-top">
+                        <div class="flex flex-wrap justify-end gap-2">
+                          <button @click="viewDetail(doc)" class="rounded-full border border-slate-200 dark:border-slate-700 bg-white/80 dark:bg-slate-800/80 px-3 py-1.5 text-xs font-semibold text-slate-600 dark:text-slate-200 hover:border-primary hover:text-primary">รายละเอียด</button>
+                          <button @click="openEditForm(doc)" :disabled="isLocked" class="rounded-full bg-primary/20 px-3 py-1.5 text-xs font-semibold text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed">แก้ไข</button>
+                          <button @click="archiveDocument(doc)" :disabled="isLocked" class="rounded-full bg-danger/10 px-3 py-1.5 text-xs font-semibold text-danger hover:bg-danger/20 disabled:opacity-40 disabled:cursor-not-allowed">Archive</button>
+                        </div>
+                      </td>
+                    </tr>
+                  </template>
+                </tbody>
+              </table>
             </div>
           </div>
         </template>
-        <template x-if="viewMode === 'card'">
-          <div class="grid md:grid-cols-2 xl:grid-cols-3 gap-4">
+
+        <template x-if="!isLoading && documents.length && viewMode === 'card'">
+          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             <template x-for="doc in documents" :key="doc.id">
-              <div class="bg-white dark:bg-slate-900/60 text-slate-800 dark:text-slate-100 rounded-lg p-4 shadow flex flex-col justify-between">
-                <div class="space-y-2">
-                  <div class="flex justify-between items-center">
-                    <h3 class="text-lg font-semibold" x-text="doc.title"></h3>
-                    <span :class="statusBadge(doc.status)" class="px-2 py-0.5 rounded-full text-xs font-semibold" x-text="doc.status"></span>
+              <div class="relative overflow-hidden rounded-3xl border border-white/60 dark:border-slate-800/70 bg-white/80 dark:bg-slate-900/50 backdrop-blur p-6 shadow-lg transition hover:-translate-y-1 hover:shadow-xl">
+                <div class="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-primary via-success to-emerald-400 opacity-70"></div>
+                <div class="flex items-start justify-between gap-4">
+                  <div>
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white" x-text="doc.title"></h3>
+                    <p class="mt-1 text-sm text-slate-500 dark:text-slate-400" x-text="doc.notes || 'ไม่มีหมายเหตุเพิ่มเติม'"></p>
                   </div>
-                  <p class="text-sm text-slate-600 dark:text-slate-300" x-text="doc.notes"></p>
-                  <div class="text-xs text-slate-500 dark:text-slate-400 space-y-1">
-                    <div>หมวดหมู่: <span x-text="doc.category"></span></div>
-                    <div>เจ้าของ: <span x-text="doc.owner"></span></div>
-                    <div>ออก: <span x-text="formatDate(doc.issueDate)"></span></div>
-                    <div>หมดอายุ: <span x-text="formatDate(doc.expiryDate)"></span></div>
+                  <span :class="statusBadge(doc.status)" class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-wide" x-text="doc.status"></span>
+                </div>
+                <div class="mt-4 grid gap-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div class="flex items-center gap-2">
+                    <span class="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-200/70 dark:bg-slate-800/80 text-slate-600 dark:text-slate-200 font-semibold" x-text="doc.category ? doc.category.charAt(0).toUpperCase() : '-' "></span>
+                    <div>
+                      <div class="font-semibold text-slate-700 dark:text-slate-200" x-text="doc.category || 'ไม่ระบุหมวดหมู่'"></div>
+                      <div x-text="doc.owner || '-' "></div>
+                    </div>
                   </div>
-                  <div class="flex flex-wrap gap-1">
-                    <template x-for="tag in doc.tags" :key="tag">
-                      <span class="px-2 py-0.5 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded-full text-xs" x-text="tag"></span>
+                  <div class="flex flex-wrap items-center gap-2">
+                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/70 dark:bg-slate-800/80 px-3 py-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 3.75h7.5M8.25 6h7.5m-9 3h10.5m-12 3h13.5m-13.5 3h13.5m-12 3h10.5" />
+                      </svg>
+                      <span x-text="formatDate(doc.issueDate) || '-' "></span>
+                    </span>
+                    <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/70 dark:bg-slate-800/80 px-3 py-1">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6l3.5 2.1" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12a7.5 7.5 0 1115 0 7.5 7.5 0 01-15 0z" />
+                      </svg>
+                      <span x-text="formatDate(doc.expiryDate) || '-' "></span>
+                    </span>
+                    <span x-show="doc.expiryBadge" :class="doc.expiryBadge?.class" class="inline-flex items-center gap-1 rounded-full px-3 py-1 text-xs font-semibold">
+                      <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span x-text="doc.expiryBadge?.label"></span>
+                    </span>
+                  </div>
+                </div>
+                <div class="mt-4 flex flex-wrap gap-2">
+                  <template x-for="tag in doc.tags" :key="tag">
+                    <span class="rounded-full bg-primary/10 px-3 py-1 text-xs font-medium text-primary" x-text="tag"></span>
+                  </template>
+                  <template x-if="!(doc.tags && doc.tags.length)">
+                    <span class="rounded-full bg-slate-200/60 px-3 py-1 text-xs text-slate-500 dark:text-slate-400">ไม่มีแท็ก</span>
+                  </template>
+                </div>
+                <div class="mt-4 space-y-2 text-xs text-slate-500 dark:text-slate-400">
+                  <div class="font-semibold text-slate-600 dark:text-slate-300">ไฟล์แนบ</div>
+                  <div class="flex flex-wrap gap-2">
+                    <template x-for="file in doc.driveFiles" :key="file.id">
+                      <a :href="file.url" target="_blank" class="group inline-flex items-center gap-2 rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1 text-xs text-slate-600 dark:text-slate-300 hover:border-primary hover:text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                          <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 12.75l3 3 6-6" />
+                        </svg>
+                        <span x-text="file.name || file.id"></span>
+                      </a>
+                    </template>
+                    <template x-if="!(doc.driveFiles && doc.driveFiles.length)">
+                      <span class="inline-flex items-center gap-1 rounded-full bg-slate-200/60 px-3 py-1 text-xs text-slate-500 dark:text-slate-400">ไม่มีไฟล์</span>
                     </template>
                   </div>
                 </div>
-                <div class="flex gap-2 mt-4">
-                  <button @click="viewDetail(doc)" class="flex-1 px-3 py-2 bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-100 rounded">รายละเอียด</button>
-                  <button @click="openEditForm(doc)" :disabled="isLocked" class="flex-1 px-3 py-2 bg-primary/30 text-primary rounded disabled:opacity-40">แก้ไข</button>
+                <div class="mt-6 flex flex-wrap gap-2 border-t border-slate-200/60 dark:border-slate-800/60 pt-4">
+                  <button @click="viewDetail(doc)" class="flex-1 rounded-full bg-white/80 dark:bg-slate-800/80 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 hover:bg-primary/10 hover:text-primary">รายละเอียด</button>
+                  <button @click="openEditForm(doc)" :disabled="isLocked" class="flex-1 rounded-full bg-primary/20 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/30 disabled:opacity-40 disabled:cursor-not-allowed">แก้ไข</button>
+                  <button @click="archiveDocument(doc)" :disabled="isLocked" class="flex-1 rounded-full bg-danger/10 px-4 py-2 text-sm font-semibold text-danger hover:bg-danger/20 disabled:opacity-40 disabled:cursor-not-allowed">Archive</button>
                 </div>
               </div>
             </template>
+          </div>
+        </template>
+
+        <template x-if="!isLoading && !documents.length">
+          <div class="flex flex-col items-center justify-center gap-4 rounded-2xl border border-dashed border-slate-300/70 dark:border-slate-700/70 bg-white/60 dark:bg-slate-900/40 py-16 text-center">
+            <div class="flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M10.5 6a7.5 7.5 0 017.5 7.5V21l-3-2-3 2v-7.5A7.5 7.5 0 0010.5 6zM6 9h.008v.008H6V9z" />
+              </svg>
+            </div>
+            <div class="space-y-2 max-w-xl">
+              <h3 class="text-lg font-semibold text-slate-900 dark:text-white" x-text="settings.readyForData ? 'ไม่พบข้อมูลตามเงื่อนไขที่เลือก' : 'ยังไม่เชื่อมต่อฐานข้อมูล' "></h3>
+              <p class="text-sm text-slate-500 dark:text-slate-400">
+                <span x-show="settings.readyForData">ลองรีเซ็ตตัวกรองหรือเริ่มเพิ่มเอกสารใหม่เพื่อเริ่มต้นบันทึกข้อมูล</span>
+                <span x-show="!settings.readyForData">ไปที่หน้า Settings เพื่อสร้างชีตและโฟลเดอร์ให้พร้อมก่อน จากนั้นรีเฟรชเพื่อโหลดข้อมูล</span>
+              </p>
+            </div>
+            <div class="flex flex-wrap justify-center gap-2">
+              <button x-show="settings.readyForData" @click="openCreateForm" :disabled="isLocked" class="rounded-full bg-success/20 px-4 py-2 text-sm font-semibold text-success hover:bg-success/30 disabled:opacity-40 disabled:cursor-not-allowed">เพิ่มเอกสารแรก</button>
+              <button x-show="!settings.readyForData" @click="openSettings" class="rounded-full border border-primary/40 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary hover:bg-primary/20">เปิด Settings</button>
+              <button @click="refresh" class="rounded-full border border-slate-200 dark:border-slate-700 px-4 py-2 text-sm text-slate-600 dark:text-slate-300 hover:bg-slate-200/60 dark:hover:bg-slate-800/60">รีเซ็ตตัวกรอง</button>
+            </div>
+          </div>
+        </template>
+
+        <template x-if="!isLoading && documents.length">
+          <div class="flex flex-col gap-3 text-xs text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center sm:justify-between">
+            <div>หน้า <span class="font-semibold text-primary" x-text="page"></span> / <span x-text="totalPages"></span> • ทั้งหมด <span class="font-semibold" x-text="total"></span> รายการ</div>
+            <div class="inline-flex items-center gap-2">
+              <button @click="changePage(page-1)" :disabled="page<=1" class="rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 disabled:opacity-40">ก่อนหน้า</button>
+              <button @click="changePage(page+1)" :disabled="page>=totalPages" class="rounded-full border border-slate-200 dark:border-slate-700 px-3 py-1.5 hover:bg-slate-200/60 dark:hover:bg-slate-800/60 disabled:opacity-40">ถัดไป</button>
+            </div>
           </div>
         </template>
       </div>
@@ -341,7 +624,9 @@
           <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
             <div class="flex items-center justify-between">
               <h3 class="font-semibold">สร้างฐานข้อมูลอัตโนมัติ</h3>
-              <span class="text-xs px-2 py-1 rounded-full" :class="settings.setupComplete ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'" x-text="settings.setupComplete ? 'พร้อมใช้งาน' : 'ยังไม่ตั้งค่า'"></span>
+              <span class="text-xs px-2 py-1 rounded-full"
+                :class="settings.readyForData ? (settings.setupComplete ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning') : 'bg-danger/20 text-danger'"
+                x-text="settings.readyForData ? (settings.setupComplete ? 'พร้อมใช้งานเต็มรูปแบบ' : 'เชื่อมต่อชีตแล้ว') : 'ยังไม่ตั้งค่า'"></span>
             </div>
             <p class="text-sm text-slate-600 dark:text-slate-400">กดปุ่มเพื่อให้ระบบสร้าง Google Sheet พร้อมหัวคอลัมน์และโฟลเดอร์ Google Drive รวมถึงเติมข้อมูลตัวอย่างให้อัตโนมัติ</p>
             <div class="flex gap-2 flex-wrap">
@@ -410,6 +695,8 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
         darkMode: true,
         documents: [],
         summary: { total: 0, aboutToExpire: 0, expired: 0 },
+        categoryOptions: [],
+        isLoading: false,
         viewMode: 'table',
         page: 1,
         totalPages: 1,
@@ -417,6 +704,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
         filters: {
           keyword: '',
           status: '',
+          category: '',
           issueStart: '',
           issueEnd: '',
           expiryStart: '',
@@ -431,6 +719,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           setupComplete: false,
           isSheetReady: false,
           isFolderReady: false,
+          readyForData: false,
           appName: '{{APP_NAME}}',
         },
         adminPassword: '',
@@ -461,7 +750,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           console.log('init app');
           this.fetchSettings()
             .then(() => {
-              if (this.settings.setupComplete) {
+              if (this.settings.readyForData) {
                 this.loadDocuments();
               }
             })
@@ -480,55 +769,68 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
         },
         statusBadge(status) {
           switch ((status || '').toLowerCase()) {
-            case 'active': return 'bg-success/20 text-success';
-            case 'archived': return 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
-            case 'expired': return 'bg-danger/20 text-danger';
-            default: return 'bg-slate-200 dark:bg-slate-700 text-slate-800 dark:text-slate-200';
+            case 'active':
+              return 'bg-success/10 text-success border border-success/40';
+            case 'archived':
+              return 'bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-600/60';
+            case 'expired':
+              return 'bg-danger/10 text-danger border border-danger/40';
+            default:
+              return 'bg-slate-200/70 dark:bg-slate-700/70 text-slate-700 dark:text-slate-200 border border-slate-300/60 dark:border-slate-600/60';
           }
         },
         computeExpiryBadge(doc) {
           if (!doc.expiryDate) return null;
           const diff = Math.ceil((new Date(doc.expiryDate) - new Date()) / (1000 * 3600 * 24));
-          if (diff < 0) return { label: 'หมดอายุ', class: 'bg-danger/20 text-danger' };
-          if (diff <= doc.remindDays) return { label: 'ใกล้หมด', class: 'bg-warning/20 text-warning' };
+          if (isNaN(diff)) return null;
+          if (diff < 0) return { label: 'หมดอายุ', class: 'bg-danger/10 text-danger border border-danger/40', days: diff };
+          if (diff === 0) return { label: 'หมดอายุวันนี้', class: 'bg-warning/10 text-warning border border-warning/40', days: diff };
+          if (diff <= doc.remindDays) return { label: 'เหลือ ' + diff + ' วัน', class: 'bg-warning/10 text-warning border border-warning/40', days: diff };
           return null;
         },
         refresh() {
           this.fetchSettings()
             .then(() => {
-              if (this.settings.setupComplete) {
+              if (this.settings.readyForData) {
                 this.loadDocuments();
               }
             })
             .catch(() => {});
         },
         loadDocuments(page = this.page) {
-          if (!this.settings.setupComplete) {
+          if (!this.settings.readyForData) {
             console.warn('workspace not provisioned yet');
+            this.summary = { total: 0, aboutToExpire: 0, expired: 0 };
+            this.documents = [];
+            this.isLoading = false;
             return Promise.resolve();
           }
           const payload = {
             page: page,
             pageSize: 20,
             keyword: this.filters.keyword,
+            category: this.filters.category,
             status: this.filters.status,
             issueRange: { start: this.filters.issueStart, end: this.filters.issueEnd },
             expiryRange: { start: this.filters.expiryStart, end: this.filters.expiryEnd },
             sort: { field: this.filters.sortField, direction: this.filters.sortDirection },
           };
           console.log('loadDocuments', payload);
+          this.isLoading = true;
           return this.callApi('list', payload)
             .then((res) => {
               this.documents = (res.items || []).map((doc) => {
                 doc.expiryBadge = this.computeExpiryBadge(doc);
                 return doc;
               });
-              this.summary = res.summary || this.summary;
+              this.summary = res.summary || { total: 0, aboutToExpire: 0, expired: 0 };
+              this.categoryOptions = res.categories || [];
               this.page = res.page;
               this.totalPages = res.totalPages;
               this.total = res.total;
             })
-            .catch((err) => this.notify(err.message || 'โหลดข้อมูลไม่สำเร็จ'));
+            .catch((err) => this.notify(err.message || 'โหลดข้อมูลไม่สำเร็จ'))
+            .finally(() => { this.isLoading = false; });
         },
         changePage(newPage) {
           if (newPage < 1 || newPage > this.totalPages) return;
@@ -683,6 +985,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
                 setupComplete: false,
                 isSheetReady: false,
                 isFolderReady: false,
+                readyForData: false,
                 appName: '{{APP_NAME}}',
               }, res || {});
             })
@@ -741,7 +1044,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
               this.notify('เตรียมฐานข้อมูลสำเร็จ');
               this.fetchSettings()
                 .then(() => {
-                  if (this.settings.setupComplete) {
+                  if (this.settings.readyForData) {
                     this.loadDocuments();
                   }
                 });

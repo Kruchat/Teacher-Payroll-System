@@ -51,14 +51,17 @@ const SAMPLE_DOCUMENT_TEMPLATES = [
  */
 function getAdminSettings() {
   const config = getScriptConfig();
+  const sheetReady = !!(config.sheetId && config.sheetId !== '{{SHEET_ID}}');
+  const folderReady = !!(config.driveFolderId && config.driveFolderId !== '{{DRIVE_FOLDER_ID}}');
   return {
     sheetId: config.sheetId,
     sheetName: config.sheetName,
     driveFolderId: config.driveFolderId,
     appName: APP_NAME,
-    isSheetReady: !!(config.sheetId && config.sheetId !== '{{SHEET_ID}}'),
-    isFolderReady: !!(config.driveFolderId && config.driveFolderId !== '{{DRIVE_FOLDER_ID}}'),
-    setupComplete: !!(config.sheetId && config.sheetId !== '{{SHEET_ID}}' && config.driveFolderId && config.driveFolderId !== '{{DRIVE_FOLDER_ID}}'),
+    isSheetReady: sheetReady,
+    isFolderReady: folderReady,
+    readyForData: sheetReady,
+    setupComplete: sheetReady && folderReady,
   };
 }
 
@@ -395,6 +398,10 @@ function listDocuments(payload) {
   const items = filtered.slice(start, start + pageSize);
 
   const summary = buildSummary(allDocs);
+  const categories = Array.from(new Set(allDocs
+    .map(function (doc) { return (doc.category || '').toString().trim(); })
+    .filter(function (value) { return value; })
+  )).sort();
 
   return {
     items: items,
@@ -403,6 +410,7 @@ function listDocuments(payload) {
     total: total,
     totalPages: totalPages,
     summary: summary,
+    categories: categories,
   };
 }
 

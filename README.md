@@ -65,7 +65,7 @@
 - ✅ แจ้งเตือนหมดอายุผ่านทริกเกอร์รายวัน (MailApp) พร้อมแนบลิงก์เอกสารและไฟล์
 - ✅ สำรองข้อมูลรายสัปดาห์ + ปุ่มกดสำรองทันที + ปุ่ม Export CSV/JSON
 - ✅ ความปลอดภัยเบื้องต้น: ปลดล็อกด้วยรหัสผ่านผู้ดูแลก่อนแก้ไขข้อมูล, Properties Service เก็บค่า ID/Secret
-- ✅ UX/UI Mobile-first, Dark mode, Toast แจ้งเตือน, Badge สีสถานะ, Drag & Drop อัปโหลดไฟล์, ปุ่มคัดลอกลิงก์/พิมพ์
+- ✅ UX/UI Mobile-first พร้อมแดชบอร์ดใหม่, Dark mode, Toast แจ้งเตือน, Badge สีสถานะ, Drag & Drop อัปโหลดไฟล์, ปุ่มคัดลอกลิงก์/พิมพ์, มุมมอง Table/Card สวยงาม
 - ✅ Logging: `console.log` ฝั่ง client และ `Logger.log` ในทุก action ฝั่ง server
 - ✅ Health Check: เรียก `action=ping` จะคืน `{ok:true}` พร้อม timestamp
 
@@ -96,3 +96,4 @@ curl -X POST \
 - สามารถกำหนด default values เพิ่มเติมใน `appState().resetForm()` เพื่อความสะดวก
 - หากต้องการขยาย API ให้รองรับ batch operations สามารถเพิ่ม action ใน `handleApiRequest`
 - ใช้ `action=provisionWorkspace` (payload: `{forceNewSheet, forceNewFolder, adminPass}`) เพื่อให้สคริปต์สร้าง/รีเซ็ต Spreadsheet และ Drive Folder อัตโนมัติพร้อมข้อมูลตัวอย่าง
+- เมื่อเชื่อมต่อเฉพาะ Google Sheet (ยังไม่ตั้งค่าโฟลเดอร์) ระบบยังสามารถโหลดข้อมูลและค้นหาได้ทันทีผ่านสถานะ `readyForData`
