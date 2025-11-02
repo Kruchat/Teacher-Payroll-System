@@ -23,18 +23,45 @@ function getSheet() {
   if (!config.sheetId || config.sheetId === '{{SHEET_ID}}') {
     throw new Error('ยังไม่ได้ตั้งค่า SHEET_ID โปรดสร้างฐานข้อมูลจากหน้า Settings');
   }
-  const sheetName = config.sheetName && config.sheetName !== '{{SHEET_NAME}}' ? config.sheetName : 'documents';
+  let sheetName = config.sheetName && config.sheetName !== '{{SHEET_NAME}}' ? config.sheetName : 'documents';
   const spreadsheet = SpreadsheetApp.openById(config.sheetId);
   let sheet = spreadsheet.getSheetByName(sheetName);
+
   if (!sheet) {
-    sheet = spreadsheet.insertSheet(sheetName);
+    const sheets = spreadsheet.getSheets();
+    const matchingSheet = sheets.find(function (candidate) {
+      try {
+        const headerValues = candidate
+          .getRange(1, 1, 1, SHEET_HEADERS.length)
+          .getValues()[0]
+          .map(function (value) {
+            return value ? value.toString().trim().toLowerCase() : '';
+          });
+        return SHEET_HEADERS.every(function (expected, index) {
+          return (headerValues[index] || '') === expected.toLowerCase();
+        });
+      } catch (err) {
+        Logger.log('[getSheet] failed to inspect sheet %s reason=%s', candidate.getName(), err);
+        return false;
+      }
+    });
+
+    if (matchingSheet) {
+      sheet = matchingSheet;
+      sheetName = matchingSheet.getName();
+      Logger.log('[getSheet] found sheet by header signature name=%s', sheetName);
+    } else {
+      sheet = spreadsheet.insertSheet(sheetName);
+      Logger.log('[getSheet] inserted new sheet name=%s', sheetName);
+    }
   }
+
   if (typeof ensureSheetHeaders === 'function') {
     ensureSheetHeaders(sheet);
   } else {
     sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
   }
-  if (!config.sheetName || config.sheetName === '{{SHEET_NAME}}') {
+  if (!config.sheetName || config.sheetName === '{{SHEET_NAME}}' || sheetName !== config.sheetName) {
     PropertiesService.getScriptProperties().setProperty('SHEET_NAME', sheetName);
   }
   return sheet;
