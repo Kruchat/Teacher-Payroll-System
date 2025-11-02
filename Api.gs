@@ -4,6 +4,48 @@ const SHEET_HEADERS = [
   'createdAt', 'updatedAt'
 ];
 
+const SAMPLE_DOCUMENT_TEMPLATES = [
+  {
+    title: 'บัตรประชาชน',
+    category: 'ส่วนตัว',
+    tags: ['id', 'important'],
+    owner: '',
+    issueDate: '2020-01-01',
+    expiryDate: '2030-01-01',
+    remindDays: 30,
+    location: 'ลิ้นชัก',
+    source: 'สแกน',
+    status: 'active',
+    notes: 'ตัวอย่างข้อมูล: จัดเก็บสำเนาบัตรประชาชน',
+  },
+  {
+    title: 'หนังสือเดินทาง',
+    category: 'เดินทาง',
+    tags: ['passport'],
+    owner: '',
+    issueDate: '2019-05-10',
+    expiryDate: '2029-05-10',
+    remindDays: 60,
+    location: 'ตู้นิรภัย',
+    source: 'สแกน',
+    status: 'active',
+    notes: 'ตัวอย่างข้อมูล: ตรวจวันหมดอายุล่วงหน้า',
+  },
+  {
+    title: 'ประกันสุขภาพ',
+    category: 'ประกัน',
+    tags: ['insurance', 'health'],
+    owner: '',
+    issueDate: '2023-01-01',
+    expiryDate: '2024-12-31',
+    remindDays: 45,
+    location: 'กล่องเอกสาร',
+    source: 'อีเมล',
+    status: 'active',
+    notes: 'ตัวอย่างข้อมูล: เอกสารมีการอัปเดตทุกปี',
+  },
+];
+
 /**
  * Get script properties helper.
  */
@@ -14,6 +56,9 @@ function getAdminSettings() {
     sheetName: config.sheetName,
     driveFolderId: config.driveFolderId,
     appName: APP_NAME,
+    isSheetReady: !!(config.sheetId && config.sheetId !== '{{SHEET_ID}}'),
+    isFolderReady: !!(config.driveFolderId && config.driveFolderId !== '{{DRIVE_FOLDER_ID}}'),
+    setupComplete: !!(config.sheetId && config.sheetId !== '{{SHEET_ID}}' && config.driveFolderId && config.driveFolderId !== '{{DRIVE_FOLDER_ID}}'),
   };
 }
 
@@ -112,6 +157,143 @@ function objectToRow(obj) {
     }
     return obj[key] !== undefined ? obj[key] : '';
   });
+}
+
+function sanitizeSheetName(name) {
+  if (!name || name === '{{SHEET_NAME}}') {
+    return 'documents';
+  }
+  return name;
+}
+
+function ensureSheetHeaders(sheet) {
+  const headerRange = sheet.getRange(1, 1, 1, SHEET_HEADERS.length);
+  const current = headerRange.getValues()[0];
+  const needsUpdate = SHEET_HEADERS.some(function (header, index) {
+    return current[index] !== header;
+  });
+  if (needsUpdate) {
+    headerRange.setValues([SHEET_HEADERS]);
+  }
+}
+
+function seedSampleDocuments(sheet) {
+  if (sheet.getLastRow() > 1) {
+    return 0;
+  }
+  const nowIso = new Date().toISOString();
+  var ownerEmail = '';
+  try {
+    ownerEmail = Session.getActiveUser().getEmail();
+  } catch (err) {
+    ownerEmail = '';
+  }
+  const rows = SAMPLE_DOCUMENT_TEMPLATES.map(function (template) {
+    const doc = Object.assign({}, template);
+    doc.id = Utilities.getUuid();
+    doc.owner = doc.owner || ownerEmail || 'me@email.com';
+    doc.remindDays = Number(doc.remindDays || 0);
+    doc.driveFiles = [];
+    doc.versionHistory = [];
+    doc.createdAt = nowIso;
+    doc.updatedAt = nowIso;
+    return objectToRow(doc);
+  });
+  if (!rows.length) {
+    return 0;
+  }
+  sheet.getRange(2, 1, rows.length, SHEET_HEADERS.length).setValues(rows);
+  return rows.length;
+}
+
+function provisionWorkspace(payload, ctx) {
+  const props = PropertiesService.getScriptProperties();
+  const forceNewSheet = payload && payload.forceNewSheet;
+  const forceNewFolder = payload && payload.forceNewFolder;
+  const desiredSheetName = payload && payload.sheetName ? payload.sheetName : props.getProperty('SHEET_NAME');
+  const sheetName = sanitizeSheetName(desiredSheetName);
+  const sheetTitle = (payload && payload.sheetTitle) || (APP_NAME + ' Metadata');
+  const folderName = (payload && payload.folderName) || (APP_NAME + ' Files');
+
+  let spreadsheet;
+  let createdNewSheet = false;
+  const existingSheetId = props.getProperty('SHEET_ID');
+  if (!existingSheetId || forceNewSheet) {
+    spreadsheet = SpreadsheetApp.create(sheetTitle);
+    createdNewSheet = true;
+  } else {
+    try {
+      spreadsheet = SpreadsheetApp.openById(existingSheetId);
+    } catch (err) {
+      Logger.log('[provisionWorkspace] unable to open sheet %s', err);
+      spreadsheet = SpreadsheetApp.create(sheetTitle);
+      createdNewSheet = true;
+    }
+  }
+
+  let sheet;
+  if (createdNewSheet) {
+    sheet = spreadsheet.getSheets()[0];
+    sheet.setName(sheetName);
+  } else {
+    sheet = spreadsheet.getSheetByName(sheetName);
+    if (!sheet) {
+      sheet = spreadsheet.insertSheet(sheetName);
+    }
+  }
+  ensureSheetHeaders(sheet);
+  const seededRows = seedSampleDocuments(sheet);
+
+  props.setProperty('SHEET_ID', spreadsheet.getId());
+  props.setProperty('SHEET_NAME', sheetName);
+
+  let folder;
+  let createdNewFolder = false;
+  const existingFolderId = props.getProperty('DRIVE_FOLDER_ID');
+  if (!existingFolderId || forceNewFolder) {
+    folder = DriveApp.createFolder(folderName);
+    createdNewFolder = true;
+  } else {
+    try {
+      folder = DriveApp.getFolderById(existingFolderId);
+    } catch (err) {
+      Logger.log('[provisionWorkspace] unable to open folder %s', err);
+      folder = DriveApp.createFolder(folderName);
+      createdNewFolder = true;
+    }
+  }
+
+  props.setProperty('DRIVE_FOLDER_ID', folder.getId());
+
+  if (payload && payload.adminPass) {
+    props.setProperty('ADMIN_PASS', payload.adminPass);
+  }
+
+  const response = {
+    sheet: {
+      id: spreadsheet.getId(),
+      url: spreadsheet.getUrl(),
+      title: spreadsheet.getName(),
+      name: sheetName,
+      created: createdNewSheet,
+    },
+    folder: {
+      id: folder.getId(),
+      url: 'https://drive.google.com/drive/folders/' + folder.getId(),
+      name: folder.getName(),
+      created: createdNewFolder,
+    },
+    seededRows: seededRows,
+  };
+
+  try {
+    response.properties = getScriptConfig();
+  } catch (err) {
+    Logger.log('[provisionWorkspace] cannot load config %s', err);
+  }
+
+  Logger.log('[provisionWorkspace] sheet=%s folder=%s seeded=%s', response.sheet.id, response.folder.id, seededRows);
+  return response;
 }
 
 /**
@@ -377,6 +559,9 @@ function validateDocumentPayload(payload, isCreate) {
  */
 function uploadFiles(payload) {
   const config = getScriptConfig();
+  if (!config.driveFolderId || config.driveFolderId === '{{DRIVE_FOLDER_ID}}') {
+    throw new Error('ยังไม่ได้ตั้งค่า DRIVE_FOLDER_ID โปรดสร้างฐานข้อมูลจากหน้า Settings');
+  }
   const folder = DriveApp.getFolderById(config.driveFolderId);
   const files = payload.files || [];
   if (!files.length) {
@@ -484,6 +669,9 @@ function runReminderCheck(payload, ctx) {
  */
 function runBackupSheet(payload, ctx) {
   const config = getScriptConfig();
+  if (!config.driveFolderId || config.driveFolderId === '{{DRIVE_FOLDER_ID}}') {
+    throw new Error('ยังไม่ได้ตั้งค่า DRIVE_FOLDER_ID โปรดสร้างฐานข้อมูลจากหน้า Settings');
+  }
   const folder = DriveApp.getFolderById(config.driveFolderId);
   const spreadsheet = SpreadsheetApp.openById(config.sheetId);
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmmss');

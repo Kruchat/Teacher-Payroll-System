@@ -22,6 +22,8 @@
 | `{{DRIVE_FOLDER_ID}}` | ไอดีโฟลเดอร์ Drive สำหรับเก็บไฟล์ที่อัปโหลด |
 | `{{ADMIN_PASS}}` | รหัสผ่านโหมดผู้ดูแล (ตั้งค่าใน Script Properties) |
 
+> **หมายเหตุ:** สามารถใช้ปุ่ม **"สร้างชีต & โฟลเดอร์"** ในหน้า Settings ของเว็บแอปเพื่อให้สคริปต์สร้าง Spreadsheet + Drive Folder พร้อมตั้งค่า Script Properties ให้อัตโนมัติได้ทันที
+
 ## สคีมาชีต
 
 คอลัมน์ตามลำดับ: `id, title, category, tags, owner, issueDate, expiryDate, remindDays, driveFileId, driveFileUrl, version, location, source, status, notes, createdAt, updatedAt`
@@ -37,6 +39,8 @@
 
 เพิ่มข้อมูล 3–5 แถวสำหรับทดสอบ (แทนค่าด้วยไอดีจริงเมื่อใช้งาน):
 
+> เมื่อใช้ปุ่ม **"สร้างชีต & โฟลเดอร์"** ระบบจะเติมข้อมูลตัวอย่างในตารางให้อัตโนมัติ สามารถลบหรือแก้ไขได้ภายหลัง
+
 | id | title | category | tags | owner | issueDate | expiryDate | remindDays | driveFileId | driveFileUrl | version | location | source | status | notes | createdAt | updatedAt |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | `UUID-1` | บัตรประชาชน | ส่วนตัว | `id,important` | me@email.com | 2020-01-01 | 2030-01-01 | 30 | FILE_ID_1 | https://drive.google.com/open?id=FILE_ID_1 | `[{"version":"v1","fileId":"FILE_ID_1","fileUrl":"https://drive.google.com/open?id=FILE_ID_1","fileName":"idcard.pdf","uploadedAt":"2024-01-01T00:00:00Z"}]` | ลิ้นชัก | สแกน | active | สำเนาบัตร | 2024-01-01T00:00:00Z | 2024-01-01T00:00:00Z |
@@ -45,18 +49,13 @@
 
 ## ขั้นตอนติดตั้ง / Deploy
 
-1. **สร้าง Spreadsheet** ใหม่ → สร้างแท็บชื่อ `{{SHEET_NAME}}` → สร้างหัวคอลัมน์ตามสคีมาข้างต้น (เรียงตามลำดับ)
-2. **สร้างโฟลเดอร์ใน Google Drive** → คัดลอก `{{DRIVE_FOLDER_ID}}`
-3. **สร้างโปรเจกต์ Google Apps Script** → สร้างไฟล์ใหม่ `Code.gs`, `Api.gs`, `Triggers.gs`, `index.html` แล้วคัดลอกโค้ดจาก repo นี้ไปวาง
-4. ที่ Apps Script ให้เปิด `Project Settings` → `Script Properties` → เพิ่มคีย์
-   - `SHEET_ID` = `{{SHEET_ID}}`
-   - `SHEET_NAME` = `{{SHEET_NAME}}`
-   - `DRIVE_FOLDER_ID` = `{{DRIVE_FOLDER_ID}}`
-   - `ADMIN_PASS` = `{{ADMIN_PASS}}`
-5. ที่เมนู `Deploy > Test deployments` หรือ `Deploy > Web app` → ตั้งค่า Execute as = "Me" และ Who has access = "Only myself" (หรือปรับตามต้องการ) → กด Deploy → คัดลอก URL
-6. เปิด URL เว็บแอป → ทดสอบเพิ่ม/แก้ไข/อัปโหลดไฟล์ → ตรวจว่าไฟล์ถูกสร้างในโฟลเดอร์ Drive และข้อมูลลงชีตถูกต้อง
-7. ไปหน้า Settings → กดปุ่ม **"สร้าง Trigger อัตโนมัติ"** → สคริปต์จะสร้างทริกเกอร์เตือนรายวันและสำรองรายสัปดาห์ให้
-8. ใส่ข้อมูลตัวอย่างที่มี expiry ใกล้ถึง → รอหรือทดสอบเรียกเมนู **Health Check (Ping)** หรือเรียกฟังก์ชัน `handleApiRequest('remindCheck', {})` ใน Apps Script เพื่อดูอีเมลแจ้งเตือนตัวอย่าง
+1. **สร้างโปรเจกต์ Google Apps Script** → สร้างไฟล์ใหม่ `Code.gs`, `Api.gs`, `Triggers.gs`, `index.html` แล้วคัดลอกโค้ดจาก repo นี้ไปวาง
+2. ไปที่เมนู `Deploy > Test deployments` หรือ `Deploy > Web app` → ตั้งค่า Execute as = "Me" และ Who has access = "Only myself" (หรือปรับตามต้องการ) → Deploy และคัดลอก URL
+3. เปิด URL เว็บแอป → เข้าเมนู Settings → กดปุ่ม **"สร้างชีต & โฟลเดอร์"** (หรือ **"บังคับสร้างใหม่"**) เพื่อให้สคริปต์สร้าง Spreadsheet + Drive Folder พร้อมตั้ง Script Properties (`SHEET_ID`, `SHEET_NAME`, `DRIVE_FOLDER_ID`) และเพิ่มข้อมูลตัวอย่างให้อัตโนมัติ
+4. ตั้งรหัสผ่านผู้ดูแล (กรอกในช่อง Admin แล้วกดปลดล็อก หรือกำหนดใน Script Properties ชื่อ `ADMIN_PASS` หากต้องการกำหนดภายหลัง)
+5. ยืนยันที่ Settings ว่า `Sheet ID` และ `Drive Folder ID` ถูกตั้งค่า → กลับหน้า Dashboard ทดลองเพิ่ม/แก้ไข/อัปโหลดไฟล์ → ตรวจว่าไฟล์ถูกสร้างในโฟลเดอร์ Drive และข้อมูลลงชีตถูกต้อง
+6. ไปหน้า Settings → กดปุ่ม **"สร้าง Trigger อัตโนมัติ"** เพื่อสร้างทริกเกอร์เตือนรายวันและสำรองรายสัปดาห์
+7. ใส่ข้อมูลตัวอย่างที่มี expiry ใกล้ถึง → ทดลองเรียกเมนู **Health Check (Ping)** หรือเรียกฟังก์ชัน `handleApiRequest('remindCheck', {})` ใน Apps Script เพื่อดูตัวอย่างอีเมลแจ้งเตือน
 
 ## ฟีเจอร์หลัก
 
@@ -96,3 +95,4 @@ curl -X POST \
 - ตรวจสอบโควต้า Apps Script (MailApp, DriveApp) หากมีไฟล์หรืออีเมลจำนวนมาก
 - สามารถกำหนด default values เพิ่มเติมใน `appState().resetForm()` เพื่อความสะดวก
 - หากต้องการขยาย API ให้รองรับ batch operations สามารถเพิ่ม action ใน `handleApiRequest`
+- ใช้ `action=provisionWorkspace` (payload: `{forceNewSheet, forceNewFolder, adminPass}`) เพื่อให้สคริปต์สร้าง/รีเซ็ต Spreadsheet และ Drive Folder อัตโนมัติพร้อมข้อมูลตัวอย่าง

@@ -20,11 +20,22 @@ function getScriptConfig() {
  */
 function getSheet() {
   const config = getScriptConfig();
+  if (!config.sheetId || config.sheetId === '{{SHEET_ID}}') {
+    throw new Error('ยังไม่ได้ตั้งค่า SHEET_ID โปรดสร้างฐานข้อมูลจากหน้า Settings');
+  }
+  const sheetName = config.sheetName && config.sheetName !== '{{SHEET_NAME}}' ? config.sheetName : 'documents';
   const spreadsheet = SpreadsheetApp.openById(config.sheetId);
-  let sheet = spreadsheet.getSheetByName(config.sheetName);
+  let sheet = spreadsheet.getSheetByName(sheetName);
   if (!sheet) {
-    sheet = spreadsheet.insertSheet(config.sheetName);
+    sheet = spreadsheet.insertSheet(sheetName);
+  }
+  if (typeof ensureSheetHeaders === 'function') {
+    ensureSheetHeaders(sheet);
+  } else {
     sheet.getRange(1, 1, 1, SHEET_HEADERS.length).setValues([SHEET_HEADERS]);
+  }
+  if (!config.sheetName || config.sheetName === '{{SHEET_NAME}}') {
+    PropertiesService.getScriptProperties().setProperty('SHEET_NAME', sheetName);
   }
   return sheet;
 }
@@ -106,6 +117,8 @@ function handleApiRequest(action, payload, context) {
       return createAutoTriggers();
     case 'deleteTriggers':
       return deleteAutoTriggers();
+    case 'provisionWorkspace':
+      return provisionWorkspace(payload, ctx);
     case 'settings':
       return getAdminSettings();
     case 'verifyAdmin':

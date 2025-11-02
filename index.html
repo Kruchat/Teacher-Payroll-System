@@ -338,11 +338,33 @@
             </div>
           </div>
 
+          <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-semibold">สร้างฐานข้อมูลอัตโนมัติ</h3>
+              <span class="text-xs px-2 py-1 rounded-full" :class="settings.setupComplete ? 'bg-success/20 text-success' : 'bg-warning/20 text-warning'" x-text="settings.setupComplete ? 'พร้อมใช้งาน' : 'ยังไม่ตั้งค่า'"></span>
+            </div>
+            <p class="text-sm text-slate-600 dark:text-slate-400">กดปุ่มเพื่อให้ระบบสร้าง Google Sheet พร้อมหัวคอลัมน์และโฟลเดอร์ Google Drive รวมถึงเติมข้อมูลตัวอย่างให้อัตโนมัติ</p>
+            <div class="flex gap-2 flex-wrap">
+              <button @click="provisionWorkspace(false)" :disabled="isProvisioning" class="px-4 py-2 bg-success/20 text-success rounded disabled:opacity-40 disabled:cursor-not-allowed">สร้างชีต &amp; โฟลเดอร์</button>
+              <button @click="provisionWorkspace(true)" :disabled="isProvisioning" class="px-4 py-2 bg-warning/20 text-warning rounded disabled:opacity-40 disabled:cursor-not-allowed">บังคับสร้างใหม่</button>
+            </div>
+            <template x-if="provisionResult">
+              <div class="text-xs space-y-1 bg-white/40 dark:bg-slate-900/40 border border-slate-200 dark:border-slate-700 rounded p-3">
+                <p>Sheet: <a :href="provisionResult.sheet.url" target="_blank" class="text-primary underline" x-text="provisionResult.sheet.id"></a> <span x-text="provisionResult.sheet.created ? '(สร้างใหม่)' : '(ใช้ของเดิม)'"></span></p>
+                <p>แท็บ: <span class="text-primary" x-text="provisionResult.sheet.name"></span></p>
+                <p>Drive Folder: <a :href="provisionResult.folder.url" target="_blank" class="text-primary underline" x-text="provisionResult.folder.id"></a> <span x-text="provisionResult.folder.created ? '(สร้างใหม่)' : '(ใช้ของเดิม)'"></span></p>
+                <p>Seed rows: <span class="text-primary" x-text="provisionResult.seededRows"></span></p>
+              </div>
+            </template>
+          </div>
+
           <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-2">
             <h3 class="font-semibold">ข้อมูลการเชื่อมต่อ</h3>
             <p>Sheet ID: <span class="text-primary" x-text="settings.sheetId"></span></p>
             <p>Sheet Name: <span class="text-primary" x-text="settings.sheetName"></span></p>
             <p>Drive Folder ID: <span class="text-primary" x-text="settings.driveFolderId"></span></p>
+            <p>สถานะชีต: <span :class="settings.isSheetReady ? 'text-success' : 'text-danger'" x-text="settings.isSheetReady ? 'พร้อมใช้งาน' : 'ยังไม่สร้าง'"></span></p>
+            <p>สถานะโฟลเดอร์: <span :class="settings.isFolderReady ? 'text-success' : 'text-danger'" x-text="settings.isFolderReady ? 'พร้อมใช้งาน' : 'ยังไม่สร้าง'"></span></p>
           </div>
 
           <div class="bg-slate-100 dark:bg-slate-800 rounded-lg p-4 space-y-3">
@@ -402,7 +424,15 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           sortField: '',
           sortDirection: 'asc',
         },
-        settings: {},
+        settings: {
+          sheetId: '',
+          sheetName: '',
+          driveFolderId: '',
+          setupComplete: false,
+          isSheetReady: false,
+          isFolderReady: false,
+          appName: '{{APP_NAME}}',
+        },
         adminPassword: '',
         isLocked: true,
         showForm: false,
@@ -424,11 +454,18 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           notes: '',
           driveFiles: [],
         },
+        isProvisioning: false,
+        provisionResult: null,
         toasts: [],
         init() {
           console.log('init app');
-          this.fetchSettings();
-          this.loadDocuments();
+          this.fetchSettings()
+            .then(() => {
+              if (this.settings.setupComplete) {
+                this.loadDocuments();
+              }
+            })
+            .catch(() => {});
         },
         toggleDarkMode() {
           this.darkMode = !this.darkMode;
@@ -457,9 +494,19 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           return null;
         },
         refresh() {
-          this.loadDocuments();
+          this.fetchSettings()
+            .then(() => {
+              if (this.settings.setupComplete) {
+                this.loadDocuments();
+              }
+            })
+            .catch(() => {});
         },
         loadDocuments(page = this.page) {
+          if (!this.settings.setupComplete) {
+            console.warn('workspace not provisioned yet');
+            return Promise.resolve();
+          }
           const payload = {
             page: page,
             pageSize: 20,
@@ -470,7 +517,7 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
             sort: { field: this.filters.sortField, direction: this.filters.sortDirection },
           };
           console.log('loadDocuments', payload);
-          this.callApi('list', payload)
+          return this.callApi('list', payload)
             .then((res) => {
               this.documents = (res.items || []).map((doc) => {
                 doc.expiryBadge = this.computeExpiryBadge(doc);
@@ -627,9 +674,21 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           this.form.driveFiles = this.form.driveFiles.filter(f => f.id !== file.id);
         },
         fetchSettings() {
-          this.callApi('settings', {})
-            .then((res) => { this.settings = res; })
-            .catch(() => {});
+          return this.callApi('settings', {})
+            .then((res) => {
+              this.settings = Object.assign({
+                sheetId: '',
+                sheetName: '',
+                driveFolderId: '',
+                setupComplete: false,
+                isSheetReady: false,
+                isFolderReady: false,
+                appName: '{{APP_NAME}}',
+              }, res || {});
+            })
+            .catch((err) => {
+              console.error('fetchSettings error', err);
+            });
         },
         unlockAdmin() {
           if (!this.adminPassword) {
@@ -649,6 +708,46 @@ Subject: [Document Expiry Notice] ชื่อเอกสาร
           this.isLocked = true;
           this.adminPassword = '';
           this.notify('ล็อกโหมดผู้ดูแล');
+        },
+        provisionWorkspace(forceNew) {
+          const appName = this.settings.appName && this.settings.appName !== '{{APP_NAME}}'
+            ? this.settings.appName
+            : '{{APP_NAME}}';
+          const sheetName = this.settings.sheetName && this.settings.sheetName !== '{{SHEET_NAME}}'
+            ? this.settings.sheetName
+            : '{{SHEET_NAME}}';
+          const payload = {
+            sheetTitle: appName + ' Metadata',
+            sheetName: sheetName,
+            folderName: appName + ' Files',
+          };
+          if (forceNew) {
+            payload.forceNewSheet = true;
+            payload.forceNewFolder = true;
+          }
+          if (this.adminPassword) {
+            payload.adminPass = this.adminPassword;
+          } else {
+            const promptPass = prompt('กำหนดรหัสผ่านผู้ดูแล (เว้นว่างหากตั้งภายหลัง)', '');
+            if (promptPass) {
+              payload.adminPass = promptPass;
+              this.adminPassword = promptPass;
+            }
+          }
+          this.isProvisioning = true;
+          this.callApi('provisionWorkspace', payload)
+            .then((res) => {
+              this.provisionResult = res;
+              this.notify('เตรียมฐานข้อมูลสำเร็จ');
+              this.fetchSettings()
+                .then(() => {
+                  if (this.settings.setupComplete) {
+                    this.loadDocuments();
+                  }
+                });
+            })
+            .catch((err) => this.notify(err.message || 'สร้างฐานข้อมูลไม่สำเร็จ'))
+            .finally(() => { this.isProvisioning = false; });
         },
         createTriggers() {
           this.callApi('createTriggers', {})
