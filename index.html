@@ -1,0 +1,1673 @@
+<!DOCTYPE html>
+<html lang="th" class="h-full overflow-hidden">
+<head>
+    <meta charset="UTF-8">
+    <!-- 1. Fix Zoom & Viewport -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content, maximum-scale=1.0, user-scalable=no">
+    <title>Kru.AI (ครู.AI) - ผู้ช่วยส่วนตัว</title>
+    <!-- 2. Import Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 3. Import Icons (Heroicons) -->
+    <script type="module" src="https://unpkg.com/heroicons@2.1.3/24/outline/index.js"></script>
+    <!-- 4. Use Sarabun/Inter font family & Button Styles -->
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
+        
+        /* --- Base Styles --- */
+        html {
+            /* Fix sharp edges on iOS */
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        body {
+            font-family: 'Sarabun', 'Inter', sans-serif;
+            overscroll-behavior: none; 
+            /* Fix iOS tap highlight */
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* --- Custom Tab Active State --- */
+        .tab-button.active { color: #4f46e5; /* indigo-600 */ }
+        .tab-button.inactive { color: #6b7280; /* gray-500 */ }
+
+        /* --- Safe Area Padding --- */
+        .safe-pt { padding-top: env(safe-area-inset-top); }
+        .safe-pb { padding-bottom: env(safe-area-inset-bottom); }
+        
+        /* --- Hide Scrollbar --- */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+        /* --- Chat Bubble Styles --- */
+        .chat-bubble-ai {
+            @apply bg-white p-3 rounded-xl rounded-bl-none shadow-sm text-gray-800 max-w-lg;
+        }
+        .chat-bubble-user {
+            @apply bg-indigo-600 text-white p-3 rounded-xl rounded-br-none shadow-sm max-w-lg;
+        }
+
+        /* --- Collapsible Group Arrow (FIXED) --- */
+        .group-toggle-icon {
+            transition: transform 0.2s ease-in-out;
+        }
+        .group-toggle[aria-expanded="true"] .group-toggle-icon {
+            transform: rotate(90deg);
+        }
+        .group-content {
+            display: none; /* Hidden by default */
+        }
+        .group-toggle[aria-expanded="true"] + .group-content {
+            display: block; /* Show when expanded */
+        }
+        
+        /* --- App-like Button System --- */
+        .btn {
+            @apply px-5 py-3 rounded-lg font-semibold shadow-sm transition-transform duration-100 ease-in-out select-none;
+            @apply active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-offset-2;
+        }
+        .btn-primary {
+            @apply btn bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-indigo-500;
+        }
+        .btn-secondary {
+            @apply btn bg-gray-200 text-gray-800 hover:bg-gray-300 focus:ring-gray-400;
+        }
+        .btn-danger {
+            @apply btn bg-red-600 text-white hover:bg-red-700 focus:ring-red-500;
+        }
+        .btn-purple {
+            @apply btn bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500;
+        }
+        .btn-blue {
+            @apply btn bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500;
+        }
+
+        /* --- Pill Buttons (Quick Actions) --- */
+        .btn-pill {
+            @apply flex items-center px-3 py-2 rounded-full text-sm font-medium transition-transform;
+            @apply active:scale-[0.97] focus:outline-none;
+        }
+        .btn-pill-green {
+            @apply btn-pill bg-emerald-100 text-emerald-800 hover:bg-emerald-200;
+        }
+        .btn-pill-red {
+            @apply btn-pill bg-rose-100 text-rose-800 hover:bg-rose-200;
+        }
+        
+        /* --- Smart Suggestion Pill Button --- */
+        .btn-pill-suggestion {
+            @apply btn-pill bg-indigo-50 text-indigo-700 hover:bg-indigo-100 flex-shrink-0;
+        }
+        
+        /* --- Icon Button (Show/Hide API Key) --- */
+        .btn-icon {
+            @apply p-3 border rounded-lg bg-gray-50 hover:bg-gray-100 transition-transform;
+             @apply active:scale-[0.97] focus:outline-none focus:ring-2 focus:ring-indigo-500;
+        }
+
+        /* --- NEW: Grouped List UI Style --- */
+        .list-group-container {
+            @apply bg-white rounded-xl shadow-sm overflow-hidden;
+        }
+        .list-group-item {
+            @apply border-b border-gray-100;
+        }
+        .list-group-item:last-child {
+            @apply border-b-0;
+        }
+        
+    </style>
+</head>
+<body class="bg-gray-50 h-full overflow-hidden">
+
+    <!-- Main App Container (FIXED: h-full) -->
+    <div class="w-full h-full flex flex-col bg-gray-50">
+        
+        <!-- Header (NEW: Light UI) -->
+        <header class="bg-white text-gray-900 p-4 shadow-sm border-b border-gray-200 flex items-center justify-between safe-pt z-10">
+            <div id="header-content" class="flex items-center">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-8 h-8 mr-2 text-indigo-600"><path d="M12 21a9 9 0 0 0 9-9c0-1.894-.575-3.64-1.546-5.068a.75.75 0 0 0-1.21.868A7.48 7.48 0 0 1 19.5 12a7.5 7.5 0 0 1-7.5 7.5A7.48 7.48 0 0 1 4.75 12.068a.75.75 0 0 0-1.21-.868A8.954 8.954 0 0 0 3 12a9 9 0 0 0 9 9Z" /><path d="M15.3 8.39a.75.75 0 0 0-1.061-1.06L12 9.58 9.76 7.33a.75.75 0 0 0-1.06 1.06l2.75 2.75a.75.75 0 0 0 1.06 0l2.75-2.75Z" /><path d="M12 13.25a.75.75 0 0 0 .75-.75V3.75a.75.75 0 0 0-1.5 0v8.75a.75.75 0 0 0 .75.75Z" /></svg>
+                <div id="header-title-container">
+                    <h1 id="header-title" class="text-xl font-bold">บันทึก (แชท)</h1>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content Area (ให้ scroll ได้แยกตาม View) -->
+        <main class="flex-1 overflow-hidden">
+            
+            <!-- View 1: Chat Window (Default) -->
+            <div id="chat-view" class="flex flex-col h-full">
+                <!-- Chat window -->
+                <div id="chat-window" class="flex-1 p-4 overflow-y-auto space-y-4 no-scrollbar">
+                    <div class="flex justify-start">
+                        <div class="bg-white text-gray-800 p-4 rounded-xl shadow-md border border-gray-100">
+                            <h3 class="font-bold text-lg mb-2 text-indigo-600">สวัสดีครับ ครู.AI พร้อมช่วยครับ!</h3>
+                            <p id="welcome-message" class="text-sm"></p>
+                        </div>
+                    </div>
+                </div>
+                <!-- Loading indicator -->
+                <div id="loading-indicator" class="p-4 text-center text-gray-500 hidden">
+                    <div class="flex justify-center items-center">
+                        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600"></div>
+                        <span class="ml-2">AI กำลังคิด...</span>
+                    </div>
+                </div>
+                <!-- Chat Input Footer -->
+                <footer class="p-4 border-t border-gray-200 bg-white shadow-inner-top">
+                    <!-- NEW: Smart Action Bar (hidden by default) -->
+                    <div id="smart-action-bar" class="flex space-x-2 mb-3 overflow-x-auto no-scrollbar hidden">
+                        <!-- Suggestions will be injected here by JS -->
+                        <div class="text-sm text-gray-400 p-2">...</div>
+                    </div>
+                    
+                    <div class="flex">
+                        <input type="text" id="user-input" class="flex-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="พิมพ์ข้อความของคุณที่นี่..." autocomplete="off">
+                        <button id="send-btn" class="ml-3 btn-primary px-5 py-3">
+                            ส่ง
+                        </button>
+                    </div>
+                </footer>
+            </div>
+
+            <!-- View 2: Dashboard (UPDATED UI) -->
+            <div id="dashboard-view" class="h-full overflow-y-auto p-4 bg-gray-50 no-scrollbar hidden">
+                <!-- Summary Cards -->
+                <div class="grid grid-cols-2 gap-4 mb-6">
+                    <div class="bg-white p-4 rounded-xl shadow flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mr-3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6 text-green-600"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" clip-rule="evenodd" /></svg></div>
+                        <div><div class="text-sm font-medium text-gray-500">รายรับ</div><div id="summary-income" class="text-2xl font-bold text-gray-900">฿0</div></div>
+                    </div>
+                    <div class="bg-white p-4 rounded-xl shadow flex items-center">
+                        <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center mr-3"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-6 h-6 text-red-600"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" clip-rule="evenodd" /></svg></div>
+                        <div><div class="text-sm font-medium text-gray-500">รายจ่าย</div><div id="summary-expense" class="text-2xl font-bold text-gray-900">฿0</div></div>
+                    </div>
+                </div>
+                
+                <!-- NEW: Expense Chart with Month Navigation -->
+                <div class="bg-white p-4 rounded-xl shadow mb-6">
+                    <!-- NEW: Month Navigation Header -->
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-semibold text-lg">สรุปรายรับรายจ่าย</h3>
+                        <div class="flex items-center space-x-2">
+                            <button id="prev-month-btn" class="p-1 rounded-full text-gray-500 hover:bg-gray-100 active:scale-95">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M12.79 5.23a.75.75 0 0 1 0 1.06L9.06 10l3.73 3.71a.75.75 0 1 1-1.06 1.06l-4.25-4.25a.75.75 0 0 1 0-1.06l4.25-4.25a.75.75 0 0 1 1.06 0Z" clip-rule="evenodd" /></svg>
+                            </button>
+                            <span id="current-month-display" class="text-sm font-medium text-gray-700 w-24 text-center">เดือนนี้</span>
+                            <button id="next-month-btn" class="p-1 rounded-full text-gray-500 hover:bg-gray-100 active:scale-95" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5"><path fill-rule="evenodd" d="M7.21 14.77a.75.75 0 0 1 0-1.06L10.94 10 7.21 6.29a.75.75 0 1 1 1.06-1.06l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06 0Z" clip-rule="evenodd" /></svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="expense-chart-container" class="grid grid-cols-1 md:grid-cols-2 gap-4 min-h-[150px]">
+                        <div id="chart-svg-container" class="flex items-center justify-center">
+                            <!-- SVG Donut Chart will be injected here -->
+                        </div>
+                        <div id="chart-legend-container" class="flex flex-col justify-center space-y-2">
+                            <!-- Legend will be injected here -->
+                        </div>
+                    </div>
+                    <div id="chart-fallback" class="text-center text-gray-500 p-4 hidden">ยังไม่มีข้อมูล</div>
+                </div>
+                
+                <!-- Groups -->
+                <div>
+                    <div id="dashboard-groups-list" class="space-y-3 mb-4"></div>
+                    <h3 id="dashboard-ungrouped-title" class="font-semibold mb-3 text-lg text-gray-700">รายการล่าสุด (ยังไม่ได้จัดกลุ่ม)</h3>
+                    <!-- NEW Grouped List UI -->
+                    <div id="dashboard-ungrouped-list" class="list-group-container">
+                        <div class="text-center text-gray-500 p-4">ยังไม่มีรายการ</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 3: Profile (UPDATED UI) -->
+            <div id="profile-view" class="h-full overflow-y-auto p-4 bg-gray-50 no-scrollbar hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">คลังข้อมูลส่วนตัว</h2>
+                <div>
+                    <div id="profile-groups-list" class="space-y-3 mb-4"></div>
+                    <h3 id="profile-ungrouped-title" class="font-semibold mb-3 text-lg text-gray-700">โน้ตล่าสุด (ยังไม่ได้จัดกลุ่ม)</h3>
+                    <!-- NEW Grouped List UI -->
+                    <div id="profile-ungrouped-list" class="list-group-container">
+                        <div class="text-center text-gray-500 p-6">
+                            ยังไม่มีข้อมูลที่บันทึกไว้
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- View 4: Settings -->
+            <div id="settings-view" class="h-full overflow-y-auto p-4 bg-gray-50 no-scrollbar hidden">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">การตั้งค่า</h2>
+                <div class="bg-white p-4 rounded-xl shadow mb-6">
+                    <label for="api-key-input" class="block text-sm font-medium text-gray-700">Gemini API Key</label>
+                    <div class="flex mt-1 space-x-2">
+                        <input type="password" id="api-key-input" class="flex-1 border border-gray-300 rounded-lg p-3 focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="ใส่ API Key ของคุณที่นี่">
+                        <button id="toggle-api-key-visibility" class="btn-icon">
+                            <svg id="eye-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-600"><path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 10.224 7.29 6.375 12 6.375s8.577 3.849 9.964 5.289a1.012 1.012 0 0 1 0 .639C20.577 13.776 16.71 17.625 12 17.625s-8.577-3.849-9.964-5.289Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /></svg>
+                            <svg id="eye-slash-icon" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 text-gray-600 hidden"><path stroke-linecap="round" stroke-linejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.243 4.243L6.228 6.228" /></svg>
+                        </button>
+                    </div>
+                    <button id="save-api-key-btn" class="mt-3 w-full btn-primary flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-2"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm-1.002-9.903a.75.75 0 1 0-1.06-1.06l-2.25 2.25a.75.75 0 0 0 1.06 1.06l1.72-1.72v5.698a.75.75 0 0 0 1.5 0V7.59l1.72 1.72a.75.75 0 1 0 1.06-1.06l-2.25-2.25a.75.75 0 0 0-1.06 0Z" clip-rule="evenodd" /></svg>
+                        บันทึก Key
+                    </button>
+                    <p id="api-key-status" class="text-xs text-gray-500 mt-2">สถานะ: ยังไม่ได้ตั้งค่า</p>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">จัดการหมวดหมู่</h3>
+                    <p class="text-sm text-gray-600 mb-4">ให้ AI ช่วยวิเคราะห์หมวดหมู่ค่าใช้จ่ายที่ซ้ำซ้อน และรวมให้เป็นหมวดหมู่เดียวกัน (นี่คือการ 'รวมชื่อ' ไม่ใช่ 'จัดกลุ่ม')</p>
+                    <button id="ai-analyze-categories-btn" class="w-full btn-purple flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-2"><path d="M10 3.5a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm-3.75 3.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm7.5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm-3.75 8a1.5 1.5 0 1 1 3 0 1.5 1.5 0 0 1-3 0Zm-3.75 3.5a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Zm7.5 0a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3Z" /><path d="M8.01 10.33a.75.75 0 0 1 0-1.06l1.22-1.22a.75.75 0 0 1 1.06 0l1.22 1.22a.75.75 0 0 1 0 1.06l-1.22 1.22a.75.75 0 0 1-1.06 0l-1.22-1.22Z" /></svg>
+                        AI ช่วยรวมหมวดหมู่ (Merge)
+                    </button>
+                    <div id="category-analysis-spinner" class="text-center p-4 hidden">
+                        <div class="flex justify-center items-center"><div class="animate-spin rounded-full h-5 w-5 border-b-2 border-purple-600"></div><span class="ml-2 text-purple-700">AI กำลังวิเคราะห์หมวดหมู่ของคุณ...</span></div>
+                    </div>
+                    <div id="category-suggestions-container" class="space-y-3 mt-4"></div>
+                </div>
+                <div class="bg-white p-4 rounded-xl shadow mb-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">จัดการข้อมูล</h3>
+                    <div class="space-y-3">
+                        <button id="export-data-btn" class="w-full btn-blue flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-2"><path d="M10.75 2.75a.75.75 0 0 0-1.5 0v8.614L6.295 8.235a.75.75 0 1 0-1.09 1.03l4.25 4.5a.75.75 0 0 0 1.09 0l4.25-4.5a.75.75 0 0 0-1.09-1.03l-2.955 3.129V2.75Z" /><path d="M3.5 12.75a.75.75 0 0 0-1.5 0v2.5A2.75 2.75 0 0 0 4.75 18h10.5A2.75 2.75 0 0 0 18 15.25v-2.5a.75.75 0 0 0-1.5 0v2.5c0 .69-.56 1.25-1.25 1.25H4.75c-.69 0-1.25-.56-1.25-1.25v-2.5Z" /></svg>ส่งออกข้อมูล (Export as JSON)</button>
+                        <button id="delete-data-btn" class="w-full btn-danger flex items-center justify-center"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-2"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>ลบข้อมูลทั้งหมด</button>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Bottom Navigation (4 Tabs) -->
+        <nav class="border-t border-gray-200 bg-white grid grid-cols-4 text-center safe-pb shadow-t-lg">
+            <!-- Tab 1: Chat -->
+            <button id="tab-chat" data-tab="chat" class="tab-button p-4 flex flex-col items-center justify-center active"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1"><path stroke-linecap="round" stroke-linejoin="round" d="M8.625 12a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H8.25m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0H12m4.125 0a.375.375 0 1 1-.75 0 .375.375 0 0 1 .75 0Zm0 0h-.375M21 12c0 4.556-3.86 8.25-8.625 8.25S3.75 16.556 3.75 12 7.61 3.75 12.375 3.75 21 7.444 21 12Z" /></svg><span class="text-xs font-semibold">บันทึก</span></button>
+            <!-- Tab 2: Dashboard -->
+            <button id="tab-dashboard" data-tab="dashboard" class="tab-button p-4 flex flex-col items-center justify-center inactive"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 3v11.25A2.25 2.25 0 0 0 6 16.5h12A2.25 2.25 0 0 0 20.25 14.25V3.75M3.75 18.75h16.5M13.5 12.75h3.75M13.5 16.5h3.75M13.5 9.75h3.75M3.75 9.75h7.5M3.75 12.75h7.5M3.75 16.5h7.5M3.75 6.75h16.5" /></svg><span class="text-xs font-medium">ภาพรวม</span></button>
+            <!-- Tab 3: Profile -->
+            <button id="tab-profile" data-tab="profile" class="tab-button p-4 flex flex-col items-center justify-center inactive"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A1.75 1.75 0 0 1 17.249 22H6.751a1.75 1.75 0 0 1-2.25-1.882Z" /></svg><span class="text-xs font-medium">โปรไฟล์</span></button>
+            <!-- Tab 4: Settings -->
+            <button id="tab-settings" data-tab="settings" class="tab-button p-4 flex flex-col items-center justify-center inactive"><svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-6 h-6 mb-1"><path stroke-linecap="round" stroke-linejoin="round" d="M10.343 3.94c.09-.542.56-1.007 1.11-1.226M10.343 3.94a2.25 2.25 0 0 1 3.314 0c.55.219 1.02.684 1.11 1.226m-4.534 0c.091.542.56 1.007 1.11 1.226m3.314 0c.55-.219 1.02-.684 1.11-1.226m-4.534 0c-.632.095-1.218.423-1.6 1.003M12 19.5v-1.5m0 1.5c-.632.095-1.218.423-1.6 1.003M12 19.5c.632.095 1.218.423 1.6 1.003M12 19.5v-1.5m0 0v-1.5m0 0v-1.5m0 0V3m0 6.75A2.25 2.25 0 0 1 14.25 12 2.25 2.25 0 0 1 12 14.25 2.25 2.25 0 0 1 9.75 12 2.25 2.25 0 0 1 12 9.75Z" /></svg><span class="text-xs font-medium">ตั้งค่า</span></button>
+        </nav>
+    </div>
+
+    <!-- Delete Confirmation Modal (UPDATED) -->
+    <div id="delete-modal" class="fixed inset-0 bg-gray-900 bg-opacity-75 flex items-center justify-center p-4 hidden z-50">
+        <div class="bg-white rounded-lg shadow-xl p-6 w-full max-w-sm">
+            <h3 id="delete-modal-title" class="text-lg font-bold text-gray-900">ยืนยันการลบ</h3>
+            <p id="delete-modal-text" class="text-sm text-gray-600 mt-2">
+                คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้
+            </p>
+            <div class="mt-4 flex justify-end space-x-3">
+                <button id="cancel-delete-btn" class="btn-secondary px-4 py-2">
+                    ยกเลิก
+                </button>
+                <button id="confirm-delete-all-btn" class="btn-danger px-4 py-2 hidden">
+                    ยืนยันลบทั้งหมด
+                </button>
+                <button id="confirm-delete-note-btn" class="btn-danger px-4 py-2 hidden">
+                    ยืนยันลบโน้ต
+                </button>
+                <button id="confirm-delete-group-btn" class="btn-danger px-4 py-2 hidden">
+                    ยืนยันลบกลุ่ม
+                </button>
+                <!-- NEW Delete Button -->
+                <button id="confirm-delete-transaction-btn" class="btn-danger px-4 py-2 hidden">
+                    ยืนยันลบรายการ
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <script type="module">
+        // ------------------------------------------------
+        // App Logic (Local Storage Version)
+        // (อัปเกรด: Income vs Expense Donut Chart)
+        // ------------------------------------------------
+
+        // --- Local Storage Keys ---
+        const DB_SETTINGS_KEY = 'teacher_app_settings';
+        const DB_DATA_KEY = 'teacher_app_data';       // Stores Transactions
+        const DB_PROFILE_KEY = 'teacher_app_profile';  // Stores Notes
+        const DB_GROUPS_KEY = 'teacher_app_groups';    // Stores Groups {id, name, type, createdAt}
+
+        // --- Global State ---
+        let chatHistory = [];
+        let geminiApiKey = null;
+        let todayForAI = new Date().toISOString().split('T')[0];
+        let itemToDelete = { id: null, type: null }; 
+        let displayMonthOffset = 0; // 0 = this month, -1 = last month
+
+        // --- DOM Elements ---
+        const allViews = {
+            chat: document.getElementById('chat-view'),
+            dashboard: document.getElementById('dashboard-view'),
+            profile: document.getElementById('profile-view'),
+            settings: document.getElementById('settings-view')
+        };
+        const tabButtons = document.querySelectorAll('.tab-button');
+        const headerTitleContainer = document.getElementById('header-title-container');
+        
+        // Chat Page Elements
+        const chatWindow = document.getElementById('chat-window');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const userInput = document.getElementById('user-input');
+        const sendBtn = document.getElementById('send-btn');
+        const loadingIndicator = document.getElementById('loading-indicator');
+        const smartActionBar = document.getElementById('smart-action-bar');
+
+        // Profile Page Elements (NEW UI)
+        const profileGroupsList = document.getElementById('profile-groups-list');
+        const profileUngroupedTitle = document.getElementById('profile-ungrouped-title');
+        const profileUngroupedList = document.getElementById('profile-ungrouped-list');
+
+        // Settings Page Elements
+        const apiKeyInput = document.getElementById('api-key-input');
+        const toggleApiKeyVisibilityBtn = document.getElementById('toggle-api-key-visibility');
+        const eyeIcon = document.getElementById('eye-icon');
+        const eyeSlashIcon = document.getElementById('eye-slash-icon');
+        const saveApiKeyBtn = document.getElementById('save-api-key-btn');
+        const apiKeyStatus = document.getElementById('api-key-status');
+        const exportDataBtn = document.getElementById('export-data-btn');
+        const deleteDataBtn = document.getElementById('delete-data-btn');
+        const aiAnalyzeCategoriesBtn = document.getElementById('ai-analyze-categories-btn');
+        const categoryAnalysisSpinner = document.getElementById('category-analysis-spinner');
+        const categorySuggestionsContainer = document.getElementById('category-suggestions-container');
+
+        // Dashboard Elements (NEW UI + Month Nav)
+        const summaryIncome = document.getElementById('summary-income');
+        const summaryExpense = document.getElementById('summary-expense');
+        const expenseChartContainer = document.getElementById('expense-chart-container');
+        const chartSvgContainer = document.getElementById('chart-svg-container');
+        const chartLegendContainer = document.getElementById('chart-legend-container');
+        const chartFallback = document.getElementById('chart-fallback');
+        const dashboardGroupsList = document.getElementById('dashboard-groups-list');
+        const dashboardUngroupedTitle = document.getElementById('dashboard-ungrouped-title');
+        const dashboardUngroupedList = document.getElementById('dashboard-ungrouped-list');
+        const prevMonthBtn = document.getElementById('prev-month-btn');
+        const nextMonthBtn = document.getElementById('next-month-btn');
+        const currentMonthDisplay = document.getElementById('current-month-display');
+
+        // Modal Elements (UPDATED)
+        const deleteModal = document.getElementById('delete-modal');
+        const deleteModalTitle = document.getElementById('delete-modal-title');
+        const deleteModalText = document.getElementById('delete-modal-text');
+        const cancelDeleteBtn = document.getElementById('cancel-delete-btn');
+        const confirmDeleteAllBtn = document.getElementById('confirm-delete-all-btn');
+        const confirmDeleteNoteBtn = document.getElementById('confirm-delete-note-btn');
+        const confirmDeleteGroupBtn = document.getElementById('confirm-delete-group-btn');
+        const confirmDeleteTransactionBtn = document.getElementById('confirm-delete-transaction-btn');
+
+        // --- AI Configuration (Chat) ---
+        const SYSTEM_INSTRUCTION = {
+            role: "model",
+            parts: [{
+                text: `คุณคือ "ผู้ช่วยส่วนตัว AI" (Kru.AI) สำหรับคุณครู หน้าที่ของคุณคือ:
+1.  **สนทนา:** พูดคุยเหมือนผู้ช่วยส่วนตัว ตอบเป็นภาษาไทย
+2.  **บันทึกการเงิน:** เมื่อผู้ใช้บอก 'รายรับ' หรือ 'รายจ่าย' (เช่น "รายจ่าย ก๋วยเตี๋ยว 60 บาท"), ให้สกัด: 'type', 'category' (หมวดหมู่ เช่น ค่าอาหาร), 'amount', 'date' (ถ้าไม่บอก ให้ใช้วันนี้: ${todayForAI}), และ 'description' (รายละเอียด, เช่น 'ก๋วยเตี๋ยว'). 
+    * ถ้าผู้ใช้บอกแค่หมวดหมู่ (เช่น "ค่ากาแฟ 50"), ให้ใช้ 'category' เป็น 'ค่ากาแฟ' และ 'description' เป็น null.
+    * ถ้าผู้ใช้บอกรายละเอียด (เช่น "ก๋วยเตี๋ยว 60"), คุณต้องคิด 'category' ที่เหมาะสม (เช่น 'ค่าอาหาร') และบันทึก 'description' เป็น 'ก๋วยเตี๋ยว'.
+    * **ต้อง** เรียกใช้ \`save_transaction\` **ทันที**.
+3.  **บันทึกโน้ต:** เมื่อผู้ใช้บอกให้ 'จด', 'บันทึก', หรือ 'จำ' ข้อมูลอื่นๆ ที่ *ไม่ใช่* การเงิน (เช่น "จดรหัส wifi"), **ให้คุณเกลาประโยคนั้นให้สมบูรณ์** แล้ว **ต้อง** เรียกใช้ \`save_profile_note\` **ทันที**.
+4.  **ค้นหา:** เมื่อผู้ใช้ถามหาข้อมูล, ให้แยกว่าเป็น 'การเงิน' หรือ 'ส่วนตัว'.
+    * ถ้าถาม "เดือนนี้จ่ายค่ากาแฟเท่าไหร่" -> **ต้อง** เรียกใช้ \`search_transactions\`.
+    * ถ้าถาม "รหัส wifi อะไร" -> **ต้อง** เรียกใช้ \`search_profile_notes\`.
+5.  **ยืนยัน:** **หลังจาก** Tool ทำงานเสร็จ (คุณจะได้รับ "functionResponse"), ให้คุณตอบกลับผู้ใช้เป็นข้อความภาษาไทยเพื่อยืนยัน
+6.  **จัดกลุ่ม (สำคัญมาก):** ถ้าผู้ใช้สั่งให้ 'รวม', 'จัดกลุ่ม', หรือ 'สร้างกลุ่ม' สำหรับรายการที่มีอยู่ (เช่น "รวมโน้ตเกี่ยวกับมิลิน", "จัดกลุ่มค่าเดินทางให้หน่อย") คุณ **ต้อง** ทำตามขั้นตอนดังนี้:
+    * 1. ค้นหารายการที่เกี่ยวข้องโดยใช้ \`search_transactions\` หรือ \`search_profile_notes\` (เช่น ค้นหา 'มิลิน' หรือ ค้นหา 'ค่าเดินทาง').
+    * 2. รวบรวม \`id\` ของรายการที่พบทั้งหมด (ถ้าไม่พบ ให้แจ้งผู้ใช้).
+    * 3. ตั้งชื่อกลุ่มที่เหมาะสม (เช่น 'ข้อมูลน้องมิลิน' หรือ 'กลุ่มค่าเดินทาง').
+    * 4. **ต้อง** เรียกใช้ \`create_group_and_assign_items\` **ทันที** พร้อมกับ \`itemIds\` (array), \`groupName\` (string), และ \`type\` ('profile' หรือ 'expense').`
+            }]
+        };
+
+        const TOOLS = [
+            {
+                "functionDeclarations": [ 
+                    { 
+                        "name": "save_transaction",
+                        "description": "บันทึกรายการรายรับหรือรายจ่ายใหม่ (ข้อมูลการเงิน)",
+                        "parameters": { "type": "OBJECT", "properties": {
+                            "type": { "type": "STRING", "description": "ประเภท 'income' (รายรับ) หรือ 'expense' (รายจ่าย)" },
+                            "category": { "type": "STRING", "description": "หมวดหมู่ที่ AI สรุป (เช่น ค่าอาหาร, เงินเดือน)" },
+                            "amount": { "type": "NUMBER", "description": "จำนวนเงิน" },
+                            "date": { "type": "STRING", "description": "วันที่ในรูปแบบ YYYY-MM-DD" },
+                            "description": { "type": "STRING", "description": "รายละเอียดจริง (ถ้ามี) เช่น ก๋วยเตี๋ยว, ค่าแท็กซี่ไปสยาม" }
+                        }, "required": ["type", "category", "amount", "date"] }
+                    },
+                    { 
+                        "name": "search_transactions",
+                        "description": "ค้นหารายการ 'การเงิน' ที่เคยบันทึกไว้ (เฉพาะรายการที่ยังไม่ได้จัดกลุ่ม)",
+                        "parameters": { "type": "OBJECT", "properties": {
+                            "type": { "type": "STRING", "description": "'income' หรือ 'expense'" },
+                            "category": { "type": "STRING", "description": "หมวดหมู่ที่ต้องการค้นหา" },
+                            "description": { "type": "STRING", "description": "คำค้นหาในรายละเอียด" },
+                            "date_start": { "type": "STRING", "description": "วันที่เริ่มต้น YYYY-MM-DD" },
+                            "date_end": { "type": "STRING", "description": "วันที่สิ้นสุด YYYY-MM-DD" }
+                        }, "required": [] }
+                    },
+                    {
+                        "name": "save_profile_note",
+                        "description": "บันทึกข้อมูลส่วนตัว, โน้ต, หรือข้อความอื่นๆ (ที่ไม่ใช่การเงิน) ลงในโปรไฟล์",
+                        "parameters": { "type": "OBJECT", "properties": {
+                            "content": { "type": "STRING", "description": "ข้อความข้อมูลที่ AI เกลาคำพูดแล้ว (เช่น 'รหัส Wifi บ้านคือ 1234')" }
+                        }, "required": ["content"] }
+                    },
+                    {
+                        "name": "search_profile_notes",
+                        "description": "ค้นหาข้อมูล 'ส่วนตัว' ที่เคยบันทึกไว้ในโปรไฟล์ (เฉพาะโน้ตที่ยังไม่ได้จัดกลุ่ม)",
+                        "parameters": { "type": "OBJECT", "properties": {
+                            "query": { "type": "STRING", "description": "คำค้นหา (เช่น 'wifi', 'รหัส', 'เลขที่บัญชี')" }
+                        }, "required": ["query"] }
+                    },
+                    {
+                        "name": "create_group_and_assign_items",
+                        "description": "สร้าง 'กลุ่ม' (โฟลเดอร์) ใหม่ และย้ายรายการที่เลือก (itemIds) เข้าไปในกลุ่มนั้น",
+                        "parameters": { "type": "OBJECT", "properties": {
+                            "itemIds": { "type": "ARRAY", "items": { "type": "STRING" }, "description": "Array ของ ID รายการ (จาก 'profile' หรือ 'expense') ที่จะย้ายเข้ากลุ่ม" },
+                            "groupName": { "type": "STRING", "description": "ชื่อที่ AI ตั้งสำหรับกลุ่มใหม่ เช่น 'ข้อมูลน้องมิลิน' หรือ 'ค่าเดินทาง'" },
+                            "type": { "type": "STRING", "description": "ประเภทของกลุ่ม 'profile' (สำหรับโน้ต) หรือ 'expense' (สำหรับค่าใช้จ่าย)" }
+                        }, "required": ["itemIds", "groupName", "type"] }
+                    }
+                ]
+            }
+        ];
+
+
+        // --- App Initialization ---
+        document.addEventListener('DOMContentLoaded', initApp);
+
+        function initApp() {
+            console.log("App initializing...");
+            runDataMigration(); 
+            setupEventListeners();
+            loadSettings();
+            showView('chat'); 
+            // Don't render smart bar on init, wait for focus
+        }
+
+        // --- Data Migration (UPDATED for Description) ---
+        function runDataMigration() {
+            console.log("Running data migration...");
+            let transactions = JSON.parse(localStorage.getItem(DB_DATA_KEY) || '[]');
+            let transactionsMigrated = false;
+            transactions.forEach(t => {
+                if (typeof t.groupId === 'undefined') {
+                    t.groupId = null;
+                    transactionsMigrated = true;
+                }
+                // NEW: Add description field if missing
+                if (typeof t.description === 'undefined') {
+                    t.description = null;
+                    transactionsMigrated = true;
+                }
+            });
+            if (transactionsMigrated) {
+                console.log("Migrating transactions to new 'groupId' & 'description' structure.");
+                localStorage.setItem(DB_DATA_KEY, JSON.stringify(transactions));
+            }
+            
+            let notes = JSON.parse(localStorage.getItem(DB_PROFILE_KEY) || '[]');
+            let notesMigrated = false;
+            notes.forEach(n => {
+                if (typeof n.groupId === 'undefined') {
+                    n.groupId = null;
+                    notesMigrated = true;
+                }
+            });
+            if (notesMigrated) {
+                console.log("Migrating profile notes to new 'groupId' structure.");
+                localStorage.setItem(DB_PROFILE_KEY, JSON.stringify(notes));
+            }
+            console.log("Migration complete.");
+        }
+
+
+        function setupEventListeners() {
+            // Tab Navigation
+            tabButtons.forEach(button => {
+                button.addEventListener('click', () => showView(button.dataset.tab));
+            });
+            
+            // Chat Page
+            sendBtn.addEventListener('click', handleSend);
+            chatWindow.addEventListener('click', (e) => {
+                if (e.target.id === 'go-to-settings-btn') {
+                    showView('settings');
+                }
+            });
+            userInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSend();
+                }
+            });
+
+            // Listen for clicks on Smart Action Bar
+            smartActionBar.addEventListener('click', handleSmartActionClick);
+
+            // Show/Hide Smart Bar on Input Focus/Blur
+            userInput.addEventListener('focus', showSmartBar);
+            userInput.addEventListener('blur', hideSmartBar);
+
+            // Settings Page
+            saveApiKeyBtn.addEventListener('click', handleSaveSettings);
+            toggleApiKeyVisibilityBtn.addEventListener('click', toggleApiKeyVisibility);
+            exportDataBtn.addEventListener('click', handleExportData);
+            deleteDataBtn.addEventListener('click', () => showDeleteModal('all'));
+            aiAnalyzeCategoriesBtn.addEventListener('click', handleAnalyzeCategories);
+            categorySuggestionsContainer.addEventListener('click', (e) => {
+                if (e.target.classList.contains('merge-approve-btn')) {
+                    handleMergeCategory(e.target);
+                }
+                if (e.target.classList.contains('merge-skip-btn')) {
+                    e.target.closest('.suggestion-card').remove();
+                }
+            });
+
+            // Modal
+            cancelDeleteBtn.addEventListener('click', hideDeleteModal);
+            confirmDeleteAllBtn.addEventListener('click', handleDeleteDataConfirm);
+            confirmDeleteNoteBtn.addEventListener('click', handleDeleteNoteConfirm);
+            confirmDeleteGroupBtn.addEventListener('click', handleDeleteGroupConfirm);
+            confirmDeleteTransactionBtn.addEventListener('click', handleDeleteTransactionConfirm);
+
+            // Profile Page (Event delegation for groups and items)
+            profileGroupsList.addEventListener('click', handleGroupInteraction);
+            profileUngroupedList.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-note-btn');
+                if (deleteButton) {
+                    showDeleteModal('note', deleteButton.dataset.id); 
+                }
+            });
+
+            // Dashboard Page (Event delegation for groups and items)
+            dashboardGroupsList.addEventListener('click', handleGroupInteraction); 
+            dashboardUngroupedList.addEventListener('click', (e) => {
+                const deleteButton = e.target.closest('.delete-transaction-btn');
+                if (deleteButton) {
+                    showDeleteModal('transaction', deleteButton.dataset.id); 
+                }
+            });
+            
+            // NEW: Month Navigation Listeners
+            prevMonthBtn.addEventListener('click', () => changeMonth(-1));
+            nextMonthBtn.addEventListener('click', () => changeMonth(1));
+        }
+
+        // --- Group Interaction Handler (FIXED) ---
+        function handleGroupInteraction(e) {
+            // Handle clicking the toggle button FIRST
+            const toggleButton = e.target.closest('.group-toggle');
+            if (toggleButton) {
+                const expanded = toggleButton.getAttribute('aria-expanded') === 'true';
+                toggleButton.setAttribute('aria-expanded', String(!expanded)); // Set new state
+            }
+
+            // Handle clicking the delete group button (which is inside the content)
+            const deleteButton = e.target.closest('.delete-group-btn');
+            if (deleteButton) {
+                e.stopPropagation(); // Stop event from bubbling up to the toggle button
+                showDeleteModal('group', deleteButton.dataset.id);
+            }
+        }
+
+
+        // --- UI/Navigation Functions ---
+        function showView(viewId) {
+            const viewTitles = {
+                chat: 'บันทึก (แชท)',
+                dashboard: 'ภาพรวม',
+                profile: 'คลังข้อมูลส่วนตัว',
+                settings: 'การตั้งค่า'
+            };
+
+            for (const id in allViews) {
+                allViews[id].classList.add('hidden');
+            }
+
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+                btn.classList.add('inactive');
+                btn.querySelector('span').classList.remove('font-semibold');
+                btn.querySelector('span').classList.add('font-medium');
+            });
+
+            allViews[viewId].classList.remove('hidden');
+            const activeTab = document.querySelector(`.tab-button[data-tab="${viewId}"]`);
+            if (activeTab) {
+                activeTab.classList.add('active');
+                activeTab.classList.remove('inactive');
+                activeTab.querySelector('span').classList.add('font-semibold');
+                activeTab.querySelector('span').classList.remove('font-medium');
+            }
+
+            // Load data when view becomes visible
+            if (viewId === 'dashboard') {
+                displayMonthOffset = 0; // NEW: Reset month view
+                renderDashboard(); 
+                updateDashboardHeader();
+            } else if (viewId === 'profile') {
+                renderProfile();
+                headerTitleContainer.innerHTML = `<h1 id="header-title" class="text-xl font-bold">${viewTitles[viewId]}</h1>`;
+            } else {
+                 if(viewId === 'settings') {
+                    categorySuggestionsContainer.innerHTML = '';
+                    categoryAnalysisSpinner.classList.add('hidden');
+                 }
+                headerTitleContainer.innerHTML = `<h1 id="header-title" class="text-xl font-bold">${viewTitles[viewId]}</h1>`;
+            }
+        }
+
+        // UPDATED: Now respects displayMonthOffset
+        function updateDashboardHeader() {
+            const { startOfMonth, endOfMonth } = getMonthDateRange(displayMonthOffset); // Use the offset
+            const transactions = getAllTransactions();
+            
+            let totalIncome = 0;
+            let totalExpense = 0;
+        
+            // Filter based on the selected month
+            transactions.forEach(t => {
+                if (t.date >= startOfMonth && t.date <= endOfMonth) {
+                    if (t.type === 'income') {
+                        totalIncome += t.amount;
+                    } else if (t.type === 'expense') {
+                        totalExpense += t.amount;
+                    }
+                }
+            });
+        
+            const balance = totalIncome - totalExpense;
+            const balanceColor = balance >= 0 ? 'text-green-600' : 'text-red-600';
+            
+            headerTitleContainer.innerHTML = `
+                <div>
+                    <div class="text-xs font-normal text-gray-500">ยอดคงเหลือ (${currentMonthDisplay.textContent})</div>
+                    <div class="text-2xl font-bold ${balanceColor}">฿ ${balance.toLocaleString()}</div>
+                </div>
+            `;
+        }
+
+        function addMessageToChat(sender, text) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `flex ${sender === 'user' ? 'justify-end' : 'justify-start'}`;
+            
+            const bubbleDiv = document.createElement('div');
+            bubbleDiv.className = sender === 'user' ? 'chat-bubble-user' : 'chat-bubble-ai';
+            
+            // Basic markdown for bold
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            bubbleDiv.innerHTML = text.replace(/\n/g, '<br>');
+            
+            messageDiv.appendChild(bubbleDiv);
+            chatWindow.appendChild(messageDiv);
+            
+            // Scroll to bottom
+            chatWindow.scrollTop = chatWindow.scrollHeight;
+        }
+
+        // --- Core App/AI Logic (Chat) ---
+        async function handleSend() {
+            const prompt = userInput.value.trim();
+            if (prompt === "") return;
+            
+            if (!geminiApiKey) {
+                addMessageToChat("AI", "กรุณาไปที่หน้า 'ตั้งค่า' (ไอคอนรูปเฟือง) เพื่อใส่ Gemini API Key ของคุณก่อนครับ");
+                return;
+            }
+            
+            addMessageToChat("user", prompt);
+            userInput.value = "";
+            userInput.blur(); // NEW: Unfocus input (this will trigger hideSmartBar)
+            loadingIndicator.style.display = 'block';
+            
+            chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+            await callGeminiAPI(chatHistory);
+        }
+
+        async function callGeminiAPI(history) {
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+            
+            const payload = {
+                contents: [SYSTEM_INSTRUCTION, ...history],
+                tools: TOOLS
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.error.message}`);
+                }
+
+                const result = await response.json();
+                handleApiResponse(result);
+
+            } catch (error) {
+                console.error("Error calling Gemini API:", error);
+                addMessageToChat("AI", `ขออภัยค่ะ เกิดข้อผิดพลาด: ${error.message}`);
+                loadingIndicator.style.display = 'none';
+                chatHistory.pop(); // Remove user message if API fails
+            }
+        }
+
+        async function handleApiResponse(response) {
+            const candidate = response.candidates?.[0];
+            if (!candidate || !candidate.content) {
+                addMessageToChat("AI", "AI ไม่สามารถประมวลผลคำขอนี้ได้ค่ะ");
+                loadingIndicator.style.display = 'none';
+                return;
+            }
+
+            const part = candidate.content.parts[0];
+            chatHistory.push(candidate.content); // Add AI response/tool call to history
+
+            if (part.functionCall) {
+                loadingIndicator.style.display = 'block'; // Keep loading for tool
+                await handleToolCall(part.functionCall);
+            } else if (part.text) {
+                addMessageToChat("AI", part.text);
+                loadingIndicator.style.display = 'none';
+            } else {
+                loadingIndicator.style.display = 'none';
+            }
+        }
+
+        async function handleToolCall(functionCall) {
+            const { name, args } = functionCall;
+            let toolResultContent;
+
+            try {
+                if (name === 'save_transaction') {
+                    toolResultContent = await saveTransactionToDB(args);
+                    // NEW: Refresh smart bar after saving (it's hidden but content will be ready)
+                    if (toolResultContent.success) {
+                        renderSmartActionBar();
+                    }
+                } else if (name === 'search_transactions') {
+                    toolResultContent = await searchTransactionsInDB(args);
+                } else if (name === 'save_profile_note') { 
+                    toolResultContent = await saveProfileNoteToDB(args);
+                } else if (name === 'search_profile_notes') { 
+                    toolResultContent = await searchProfileNotesInDB(args);
+                } else if (name === 'create_group_and_assign_items') {
+                    toolResultContent = await createGroupAndAssignItems(args);
+                } else {
+                    toolResultContent = { error: "Unknown tool" };
+                }
+            } catch (error) {
+                toolResultContent = { success: false, error: error.message };
+            }
+
+            // Send tool result back to AI
+            const toolResult = {
+                role: "tool", 
+                parts: [{
+                    functionResponse: { 
+                        name: name,
+                        response: {
+                            content: JSON.stringify(toolResultContent)
+                        }
+                    }
+                }]
+            };
+
+            chatHistory.push(toolResult);
+            await callGeminiAPI(chatHistory);
+        }
+
+        // --- Local DB Logic (localStorage) ---
+        function loadSettings() {
+            const settings = JSON.parse(localStorage.getItem(DB_SETTINGS_KEY) || '{}');
+            geminiApiKey = settings.apiKey || null;
+            
+            if (geminiApiKey) {
+                apiKeyInput.value = geminiApiKey;
+                apiKeyStatus.textContent = "สถานะ: บันทึก Key เรียบร้อยแล้ว";
+                apiKeyStatus.className = "text-xs text-green-600 mt-2";
+                welcomeMessage.innerHTML = "ระบบพร้อมใช้งาน! แตะที่ช่องพิมพ์เพื่อเริ่มบันทึกได้เลยครับ";
+            } else {
+                welcomeMessage.innerHTML = `หากนี่เป็นครั้งแรก กรุณาไปที่หน้า <button id="go-to-settings-btn" class="font-bold text-indigo-500 underline">ตั้งค่า</button> เพื่อใส่ Gemini API Key ก่อนนะครับ`;
+            }
+        }
+
+        function handleSaveSettings() {
+            const newApiKey = apiKeyInput.value.trim();
+            if (newApiKey) {
+                localStorage.setItem(DB_SETTINGS_KEY, JSON.stringify({ apiKey: newApiKey }));
+                geminiApiKey = newApiKey;
+                apiKeyStatus.textContent = "สถานะ: บันทึก Key เรียบร้อยแล้ว";
+                apiKeyStatus.className = "text-xs text-green-600 mt-2";
+                alert("บันทึก API Key สำเร็จ!"); 
+                showView('chat');
+                chatWindow.innerHTML = ''; 
+                addMessageToChat("AI", "ระบบพร้อมใช้งาน! แตะที่ช่องพิมพ์เพื่อเริ่มบันทึกได้เลยครับ");
+            } else {
+                alert("กรุณาใส่ API Key");
+            }
+        }
+
+        function toggleApiKeyVisibility() {
+            if (apiKeyInput.type === 'password') {
+                apiKeyInput.type = 'text';
+                eyeIcon.classList.add('hidden');
+                eyeSlashIcon.classList.remove('hidden');
+            } else {
+                apiKeyInput.type = 'password';
+                eyeIcon.classList.remove('hidden');
+                eyeSlashIcon.classList.add('hidden');
+            }
+        }
+        
+        // --- Group DB Functions (NEW) ---
+        function getAllGroups() {
+             return JSON.parse(localStorage.getItem(DB_GROUPS_KEY) || '[]').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+        function saveAllGroups(groups) {
+            localStorage.setItem(DB_GROUPS_KEY, JSON.stringify(groups));
+        }
+
+        // --- Finance DB Functions (UPDATED for Description) ---
+        function getAllTransactions() {
+            return JSON.parse(localStorage.getItem(DB_DATA_KEY) || '[]').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+        function saveAllTransactions(transactions) {
+            localStorage.setItem(DB_DATA_KEY, JSON.stringify(transactions));
+        }
+
+        async function saveTransactionToDB(data) {
+            try {
+                if (typeof data.amount !== 'number' || !data.category || !data.type || !data.date) {
+                    throw new Error("Missing or invalid data for transaction.");
+                }
+                
+                const transactions = getAllTransactions(); 
+                const newTransaction = { 
+                    ...data, 
+                    id: crypto.randomUUID(), 
+                    createdAt: new Date().toISOString(),
+                    groupId: null,
+                    description: data.description || null // Ensure description is saved
+                };
+                
+                transactions.unshift(newTransaction);
+                saveAllTransactions(transactions); 
+                
+                return { success: true, id: newTransaction.id, data: newTransaction };
+            } catch (e) {
+                console.error("Error in saveTransactionToDB:", e.message);
+                return { success: false, error: e.message };
+            }
+        }
+
+        async function searchTransactionsInDB(filters) {
+            try {
+                let transactions = getAllTransactions();
+                let ungrouped = transactions.filter(t => t.groupId === null);
+
+                if (filters.type) { ungrouped = ungrouped.filter(t => t.type === filters.type); }
+                if (filters.category) { ungrouped = ungrouped.filter(t => t.category.toLowerCase().includes(filters.category.toLowerCase())); }
+                // NEW: Search description
+                if (filters.description) { ungrouped = ungrouped.filter(t => t.description && t.description.toLowerCase().includes(filters.description.toLowerCase())); }
+                if (filters.date_start) { ungrouped = ungrouped.filter(t => t.date >= filters.date_start); }
+                if (filters.date_end) { ungrouped = ungrouped.filter(t => t.date <= filters.date_end); }
+
+                return { success: true, count: ungrouped.length, results: ungrouped.slice(0, 20) };
+            } catch (e) {
+                console.error("Error in searchTransactionsInDB:", e.message);
+                return { success: false, error: e.message };
+            }
+        }
+
+        // --- Profile DB Functions ---
+        function getAllProfileNotes() {
+            return JSON.parse(localStorage.getItem(DB_PROFILE_KEY) || '[]').sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+        }
+        function saveAllProfileNotes(notes) {
+            localStorage.setItem(DB_PROFILE_KEY, JSON.stringify(notes));
+        }
+
+        async function saveProfileNoteToDB(args) {
+            try {
+                if (!args.content || typeof args.content !== 'string' || args.content.trim() === "") {
+                     throw new Error("Note content cannot be empty.");
+                }
+                
+                const notes = getAllProfileNotes();
+                const newNote = { 
+                    id: crypto.randomUUID(), 
+                    content: args.content, 
+                    createdAt: new Date().toISOString(),
+                    groupId: null 
+                };
+                
+                notes.unshift(newNote); 
+                saveAllProfileNotes(notes); 
+                
+                return { success: true, savedNote: newNote };
+            } catch (e) {
+                 console.error("Error in saveProfileNoteToDB:", e.message);
+                return { success: false, error: e.message };
+            }
+        }
+        
+        async function searchProfileNotesInDB(args) {
+            try {
+                const notes = getAllProfileNotes();
+                const query = (args.query || "").toLowerCase();
+                const ungroupedNotes = notes.filter(n => n.groupId === null);
+
+                if (query === "") {
+                    return { success: true, count: ungroupedNotes.length, results: ungroupedNotes.slice(0, 20) }; 
+                }
+                
+                const results = ungroupedNotes.filter(note => note.content.toLowerCase().includes(query));
+                return { success: true, count: results.length, results: results.slice(0, 20) }; 
+            } catch (e) {
+                 console.error("Error in searchProfileNotesInDB:", e.message);
+                return { success: false, error: e.message };
+            }
+        }
+
+        // --- Grouping Tool Logic ---
+        async function createGroupAndAssignItems(args) {
+            const { itemIds, groupName, type } = args;
+            
+            if (!itemIds || itemIds.length === 0 || !groupName || !type) {
+                return { success: false, error: "Missing required arguments." };
+            }
+            
+            try {
+                const groups = getAllGroups();
+                const newGroup = {
+                    id: crypto.randomUUID(),
+                    name: groupName,
+                    type: type, // 'profile' or 'expense'
+                    createdAt: new Date().toISOString()
+                };
+                
+                groups.unshift(newGroup);
+                saveAllGroups(groups);
+                
+                if (type === 'profile') {
+                    let notes = getAllProfileNotes();
+                    notes = notes.map(note => {
+                        if (itemIds.includes(note.id)) {
+                            note.groupId = newGroup.id;
+                        }
+                        return note;
+                    });
+                    saveAllProfileNotes(notes);
+                } else if (type === 'expense') {
+                    let transactions = getAllTransactions();
+                    transactions = transactions.map(t => {
+                        if (itemIds.includes(t.id)) {
+                            t.groupId = newGroup.id;
+                        }
+                        return t;
+                    });
+                    saveAllTransactions(transactions);
+                }
+                
+                return { success: true, groupCreated: newGroup, itemsAffected: itemIds.length };
+            } catch (e) {
+                console.error("Error in createGroupAndAssignItems:", e.message);
+                return { success: false, error: e.message };
+            }
+        }
+
+
+        // --- Feature Logic (UPDATED) ---
+
+        // UPDATED: Now respects displayMonthOffset
+        function renderDashboard() {
+            const { startOfMonth, endOfMonth, monthName, isCurrentMonth } = getMonthDateRange(displayMonthOffset);
+            
+            // Update display
+            currentMonthDisplay.textContent = isCurrentMonth ? "เดือนนี้" : monthName;
+            nextMonthBtn.disabled = isCurrentMonth;
+            
+            const allTransactions = getAllTransactions();
+            // Filter transactions FOR THIS MONTH ONLY
+            const transactions = allTransactions.filter(t => t.date >= startOfMonth && t.date <= endOfMonth);
+            
+            const groups = getAllGroups().filter(g => g.type === 'expense');
+            
+            // Grouped/Ungrouped transactions must also be from this month
+            const groupedTransactions = transactions.filter(t => t.groupId !== null);
+            const ungroupedTransactions = transactions.filter(t => t.groupId === null);
+
+
+            // Render Groups
+            if (groups.length === 0) {
+                dashboardGroupsList.innerHTML = '';
+            } else {
+                dashboardGroupsList.innerHTML = groups.map(group => {
+                    const itemsInGroup = groupedTransactions.filter(t => t.groupId === group.id);
+                    // NEW: Only render group if it has items IN THIS MONTH
+                    if (itemsInGroup.length > 0) {
+                        return renderGroupCard(group, itemsInGroup, renderTransactionCard);
+                    }
+                    return '';
+                }).join('');
+            }
+
+            // Render Ungrouped List
+            if (ungroupedTransactions.length === 0) {
+                dashboardUngroupedList.innerHTML = '<div class="text-center text-gray-500 p-4">ยังไม่มีรายการ</div>';
+                dashboardUngroupedTitle.classList.add('hidden');
+            } else {
+                dashboardUngroupedList.innerHTML = ungroupedTransactions.map(t => renderTransactionCard(t)).join('');
+                dashboardUngroupedTitle.classList.remove('hidden');
+            }
+
+            // Calculate Summaries
+            let totalIncome = 0;
+            let totalExpense = 0;
+            const expenseCategories = {};
+            
+            // This loop now correctly uses the pre-filtered 'transactions' array
+            transactions.forEach(t => {
+                if (t.type === 'income') {
+                    totalIncome += t.amount;
+                } else if (t.type === 'expense') {
+                    totalExpense += t.amount;
+                    // Use category for chart
+                    const chartKey = t.category;
+                    expenseCategories[chartKey] = (expenseCategories[chartKey] || 0) + t.amount;
+                }
+            });
+
+            summaryIncome.textContent = `฿${totalIncome.toLocaleString()}`;
+            summaryExpense.textContent = `฿${totalExpense.toLocaleString()}`;
+
+            // Render Chart (NEW: Pass totalIncome)
+            renderDonutChart(expenseCategories, totalExpense, totalIncome);
+        }
+
+        // --- Reusable Card Renderers (UPDATED) ---
+        
+        function renderTransactionCard(t) {
+            const isGrouped = t.groupId !== null;
+            const isIncome = t.type === 'income';
+            
+            const iconBg = isIncome ? 'bg-green-100' : 'bg-red-100';
+            const iconColor = isIncome ? 'text-green-600' : 'text-red-600';
+            const amountColor = isIncome ? 'text-green-600' : 'text-red-600';
+            const sign = isIncome ? '+' : '-';
+            const icon = isIncome ? `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 ${iconColor}"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" /></svg>` : `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 ${iconColor}"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" /></svg>`;
+            
+            // NEW: Show description if it exists
+            const descriptionHtml = t.description 
+                ? `<span class="truncate">${t.description}</span> <span class="mx-1">•</span> <span>${new Date(t.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}</span>`
+                : `${new Date(t.date).toLocaleDateString('th-TH', { day: 'numeric', month: 'short' })}`;
+
+            return `
+            <div class="list-group-item p-3 ${isGrouped ? 'bg-gray-50' : 'bg-white'} group relative">
+                <div class="flex items-center">
+                    <div class="w-8 h-8 rounded-full ${iconBg} flex items-center justify-center mr-3 flex-shrink-0">
+                        ${icon}
+                    </div>
+                    <div class="flex-1 min-w-0">
+                        <div class="font-medium text-gray-900 truncate">${t.category}</div>
+                        <div class="text-sm text-gray-500 flex">${descriptionHtml}</div>
+                    </div>
+                    <div class="font-medium ${amountColor} ml-2 text-right">
+                        ${sign} ฿${t.amount.toLocaleString()}
+                    </div>
+                </div>
+                ${!isGrouped ? `
+                <button class="delete-transaction-btn absolute top-1 right-1 p-2 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" data-id="${t.id}">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-4 h-4" style="pointer-events: none;"><path fill-rule="evenodd" d="M5 3.25a.75.75 0 0 1 .75-.75h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 5 3.25Zm2.5 6.5a.75.75 0 0 1 .75-.75h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1-.75-.75Z" clip-rule="evenodd" /><path fill-rule="evenodd" d="M1.75 4.5a.75.75 0 0 1 .75-.75h11a.75.75 0 0 1 0 1.5h-11a.75.75 0 0 1-.75-.75ZM3 6a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5A.75.75 0 0 1 3 6Zm10.25 0a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5a.75.75 0 0 1 .75-.75ZM5.5 6a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5A.75.75 0 0 1 5.5 6Zm5 0a.75.75 0 0 1 .75.75v5.5a.75.75 0 0 1-1.5 0v-5.5A.75.75 0 0 1 10.5 6Z" clip-rule="evenodd" /></svg>
+                </button>
+                ` : ''}
+            </div>
+            `;
+        }
+
+        function renderProfileNoteCard(note) {
+            const isGrouped = note.groupId !== null;
+            return `
+                <div class="${isGrouped ? 'bg-gray-50' : 'bg-white'} list-group-item p-4 relative group">
+                    <p class="text-gray-800" style="white-space: pre-wrap;">${note.content}</p>
+                    <div class="text-xs text-gray-400 mt-2">
+                        ${new Date(note.createdAt).toLocaleDateString('th-TH', { day: 'numeric', month: 'short', hour: 'numeric', minute: 'numeric' })}
+                    </div>
+                    ${!isGrouped ? `
+                    <button class="delete-note-btn absolute top-2 right-2 p-1 text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity" data-id="${note.id}">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5" style="pointer-events: none;"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM8.28 7.22a.75.75 0 0 0-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 1 0 1.06 1.06L10 11.06l1.72 1.72a.75.75 0 1 0 1.06-1.06L11.06 10l1.72-1.72a.75.75 0 0 0-1.06-1.06L10 8.94 8.28 7.22Z" clip-rule="evenodd" /></svg>
+                    </button>
+                    ` : ''}
+                </div>
+            `;
+        }
+        
+        // --- Reusable Group Renderer (FIXED for new UI) ---
+        function renderGroupCard(group, items, itemRenderer) {
+            const groupIcon = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 text-indigo-600">
+                <path fill-rule="evenodd" d="M2 4.75A2.75 2.75 0 0 1 4.75 2h4.5a.75.75 0 0 1 .75.75v1a.75.75 0 0 1-.75.75h-4.5A1.25 1.25 0 0 0 3.5 5.25v9.5A1.25 1.25 0 0 0 4.75 16h10.5A1.25 1.25 0 0 0 16.5 14.75v-8.5A1.25 1.25 0 0 0 15.25 5h-4.5a.75.75 0 0 1-.75-.75v-1a.75.75 0 0 1 .75-.75h4.5A2.75 2.75 0 0 1 18 4.75v8.5A2.75 2.75 0 0 1 15.25 16H4.75A2.75 2.75 0 0 1 2 13.25v-8.5Z" clip-rule="evenodd" />
+            </svg>`;
+            
+            return `
+            <div class="bg-white rounded-xl shadow-sm">
+                <!-- Group Header (Button) -->
+                <button class="group-toggle flex items-center justify-between w-full p-3" aria-expanded="false">
+                    <div class="flex items-center min-w-0">
+                        <div class="w-6 h-6 rounded-md bg-indigo-100 flex items-center justify-center mr-3 flex-shrink-0">
+                            ${groupIcon}
+                        </div>
+                        <div class="flex-1 text-left min-w-0">
+                            <div class="font-semibold text-gray-900 truncate">${group.name}</div>
+                            <div class="text-sm text-gray-500">${items.length} รายการ</div>
+                        </div>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="group-toggle-icon w-5 h-5 text-gray-400 ml-2 flex-shrink-0">
+                        <path fill-rule="evenodd" d="M8.22 5.22a.75.75 0 0 1 1.06 0l4.25 4.25a.75.75 0 0 1 0 1.06l-4.25 4.25a.75.75 0 0 1-1.06-1.06L11.94 10 8.22 6.28a.75.75 0 0 1 0-1.06Z" clip-rule="evenodd" />
+                    </svg>
+                </button>
+                <!-- Group Content (Collapsible) -->
+                <div class="group-content border-t border-gray-100">
+                    <div class="list-group-container rounded-none shadow-none">
+                        ${items.length > 0 ? items.map(itemRenderer).join('') : '<div class="text-sm text-gray-500 p-4">ไม่มีรายการในกลุ่มนี้</div>'}
+                    </div>
+                    <div class="p-2 bg-gray-50 border-t border-gray-100">
+                        <button class="delete-group-btn text-xs text-red-600 p-2 rounded-md hover:bg-red-100 w-full text-center" data-id="${group.id}">
+                            ลบกลุ่มนี้ (รายการจะไม่ถูกลบ)
+                        </button>
+                    </div>
+                </div>
+            </div>
+            `;
+        }
+
+        // --- Profile Render Function (NEW UI) ---
+        function renderProfile() {
+            const notes = getAllProfileNotes();
+            const groups = getAllGroups().filter(g => g.type === 'profile');
+            
+            const groupedNotes = notes.filter(n => n.groupId !== null);
+            const ungroupedNotes = notes.filter(n => n.groupId === null);
+
+            // Render Groups
+            if (groups.length === 0) {
+                profileGroupsList.innerHTML = '';
+            } else {
+                profileGroupsList.innerHTML = groups.map(group => {
+                    const itemsInGroup = groupedNotes.filter(n => n.groupId === group.id);
+                    return renderGroupCard(group, itemsInGroup, renderProfileNoteCard);
+                }).join('');
+            }
+
+            // Render Ungrouped List
+            if (ungroupedNotes.length === 0) {
+                profileUngroupedList.innerHTML = `<div class="text-center text-gray-500 p-6">ยังไม่มีโน้ตที่ไม่ได้จัดกลุ่ม</div>`;
+                profileUngroupedTitle.classList.add('hidden');
+            } else {
+                profileUngroupedList.innerHTML = ungroupedNotes.map(note => renderProfileNoteCard(note)).join('');
+                profileUngroupedTitle.classList.remove('hidden');
+            }
+        }
+
+        // --- Donut Chart Rendering (UPDATED: Income vs Expense) ---
+        function renderDonutChart(expenseCategories, totalExpense, totalIncome) {
+            chartSvgContainer.innerHTML = '';
+            chartLegendContainer.innerHTML = '';
+            
+            // If there's no income, don't render the chart.
+            if (totalIncome === 0) {
+                chartFallback.classList.remove('hidden');
+                chartFallback.textContent = "ยังไม่มีข้อมูลรายรับ";
+                chartSvgContainer.classList.add('hidden');
+                chartLegendContainer.classList.add('hidden');
+                return;
+            }
+
+            chartFallback.classList.add('hidden');
+            chartSvgContainer.classList.remove('hidden');
+            chartLegendContainer.classList.remove('hidden');
+
+            // Get top 4 expenses
+            let chartData = Object.entries(expenseCategories)
+                .sort((a, b) => b[1] - a[1]) // Sort expenses by amount
+                .slice(0, 4); // Take top 4
+
+            // Calculate balance
+            const balance = totalIncome - totalExpense;
+
+            // Add "Balance" as a category if it's positive
+            if (balance > 0) {
+                chartData.push(['ยอดคงเหลือ', balance]);
+            }
+            // If balance is negative, expenses will just overflow 100%
+
+            const totalForChart = totalIncome; // The whole circle is Income
+            const colors = ['#EF4444', '#F97316', '#EAB308', '#F59E0B', '#22C55E']; // Reds/Oranges + Green for balance
+            const svgSize = 150;
+            const strokeWidth = 15;
+            const radius = (svgSize / 2) - (strokeWidth / 2);
+            const circumference = 2 * Math.PI * radius;
+
+            let cumulativePercent = 0;
+            let svgPaths = '';
+            let legendHtml = '';
+
+            chartData.forEach(([key, amount], index) => {
+                const percent = (amount / totalForChart);
+                // Handle potential overflow (expenses > income)
+                const safePercent = Math.min(Math.max(percent, 0), 1 - cumulativePercent);
+                
+                const strokeDasharray = `${safePercent * circumference} ${circumference}`;
+                const strokeDashoffset = -cumulativePercent * circumference;
+                
+                // Assign color (Green for balance, others from list)
+                const color = (key === 'ยอดคงเหลือ') ? '#22C55E' : colors[index % colors.length];
+
+                svgPaths += `<circle class="transform -rotate-90 origin-center" 
+                                     cx="${svgSize/2}" cy="${svgSize/2}" r="${radius}" 
+                                     fill="transparent" 
+                                     stroke="${color}" 
+                                     stroke-width="${strokeWidth}" 
+                                     stroke-dasharray="${strokeDasharray}" 
+                                     stroke-dashoffset="${strokeDashoffset}"
+                                     stroke-linecap="round"></circle>`;
+                
+                legendHtml += `
+                    <div class="flex items-center text-sm">
+                        <span class="w-3 h-3 rounded-full mr-2" style="background-color: ${color}"></span>
+                        <span class="flex-1 text-gray-700 truncate">${key}</span>
+                        <span class="font-medium text-gray-900 ml-2">฿${amount.toLocaleString()}</span>
+                        <span class="text-xs text-gray-500 w-10 text-right">${(percent * 100).toFixed(0)}%</span>
+                    </div>
+                `;
+
+                cumulativePercent += safePercent;
+            });
+            
+            // Handle no expenses but has income
+             if (totalIncome > 0 && totalExpense === 0) {
+                chartFallback.classList.remove('hidden');
+                chartFallback.textContent = "มีรายรับ แต่ยังไม่มีรายจ่าย";
+                chartSvgContainer.classList.add('hidden');
+                chartLegendContainer.classList.add('hidden');
+             } else {
+                 chartSvgContainer.innerHTML = `
+                    <svg width="${svgSize}" height="${svgSize}" viewBox="0 0 ${svgSize} ${svgSize}" class="block">
+                        <!-- Background Circle (Represents Income) -->
+                        <circle cx="${svgSize/2}" cy="${svgSize/2}" r="${radius}" fill="transparent" stroke="#E5E7EB" stroke-width="${strokeWidth}"></circle>
+                        <!-- Data Paths (Expenses + Balance) -->
+                        ${svgPaths}
+                    </svg>
+                `;
+                chartLegendContainer.innerHTML = legendHtml;
+             }
+        }
+        // --- End of Donut Chart Rendering ---
+
+
+        // --- NEW: Month Navigation Logic ---
+        function changeMonth(direction) {
+            displayMonthOffset += direction;
+            renderDashboard(); // Re-render all dashboard data
+            updateDashboardHeader(); // Re-render header data
+        }
+
+        function getMonthDateRange(monthOffset = 0) {
+            const today = new Date();
+            // Go to the first day of the target month
+            const targetDate = new Date(today.getFullYear(), today.getMonth() + monthOffset, 1);
+            
+            const year = targetDate.getFullYear();
+            const month = targetDate.getMonth(); // 0-11
+            
+            const startOfMonth = new Date(year, month, 1).toISOString().split('T')[0];
+            const endOfMonth = new Date(year, month + 1, 0).toISOString().split('T')[0]; // Day 0 of next month is last day of current
+            
+            // For display
+            const monthName = targetDate.toLocaleDateString('th-TH', { month: 'short', year: 'numeric' });
+            const isCurrentMonth = (today.getFullYear() === year && today.getMonth() === month);
+            
+            return { startOfMonth, endOfMonth, monthName, isCurrentMonth };
+        }
+        // --- End of Month Navigation Logic ---
+
+
+        // --- Modal Logic (UPDATED) ---
+
+        function showDeleteModal(type, id = null) {
+            itemToDelete = { type, id }; 
+            
+            confirmDeleteAllBtn.classList.add('hidden');
+            confirmDeleteNoteBtn.classList.add('hidden');
+            confirmDeleteGroupBtn.classList.add('hidden');
+            confirmDeleteTransactionBtn.classList.add('hidden');
+
+            if (type === 'all') {
+                deleteModalTitle.textContent = "ยืนยันการลบทั้งหมด";
+                deleteModalText.textContent = "คุณแน่ใจหรือไม่ว่าต้องการลบข้อมูลทั้งหมด? การกระทำนี้ไม่สามารถย้อนกลับได้";
+                confirmDeleteAllBtn.classList.remove('hidden');
+            } else if (type === 'note') {
+                deleteModalTitle.textContent = "ยืนยันการลบโน้ต";
+                deleteModalText.textContent = "คุณแน่ใจหรือไม่ว่าต้องการลบบันทึกนี้?";
+                confirmDeleteNoteBtn.classList.remove('hidden');
+            } else if (type === 'group') {
+                deleteModalTitle.textContent = "ยืนยันการลบกลุ่ม";
+                deleteModalText.textContent = "การลบกลุ่มจะ *ไม่* ลบรายการข้างใน แต่จะย้ายรายการทั้งหมดออกมาเป็น 'ไม่ได้จัดกลุ่ม' ยืนยันหรือไม่?";
+                confirmDeleteGroupBtn.classList.remove('hidden');
+            } else if (type === 'transaction') { // NEW
+                deleteModalTitle.textContent = "ยืนยันการลบรายการ";
+                deleteModalText.textContent = "คุณแน่ใจหรือไม่ว่าต้องการลบรายการนี้?";
+                confirmDeleteTransactionBtn.classList.remove('hidden');
+            }
+            
+            deleteModal.classList.remove('hidden');
+        }
+
+        function hideDeleteModal() {
+            deleteModal.classList.add('hidden');
+            itemToDelete = { id: null, type: null }; 
+        }
+
+        function handleDeleteNoteConfirm() {
+            if (itemToDelete.type !== 'note' || !itemToDelete.id) return; 
+            
+            const notes = getAllProfileNotes();
+            const newNotes = notes.filter(note => note.id !== itemToDelete.id);
+            saveAllProfileNotes(newNotes);
+            
+            renderProfile(); 
+            hideDeleteModal();
+        }
+
+        function handleDeleteTransactionConfirm() {
+            if (itemToDelete.type !== 'transaction' || !itemToDelete.id) return; 
+            
+            const transactions = getAllTransactions();
+            const newTransactions = transactions.filter(t => t.id !== itemToDelete.id);
+            saveAllTransactions(newTransactions);
+            
+            renderDashboard(); // Re-render dashboard
+            updateDashboardHeader(); // Re-calculate header
+            // renderSmartActionBar(); // Don't need to re-render, it happens on focus
+            hideDeleteModal();
+        }
+
+        function handleDeleteGroupConfirm() {
+            if (itemToDelete.type !== 'group' || !itemToDelete.id) return;
+            
+            const groupId = itemToDelete.id;
+            let notes = getAllProfileNotes();
+            let transactions = getAllTransactions();
+            let groupType = null;
+
+            const groups = getAllGroups();
+            const group = groups.find(g => g.id === groupId);
+            if(group) groupType = group.type;
+
+            if (groupType === 'profile') {
+                notes = notes.map(n => {
+                    if (n.groupId === groupId) n.groupId = null;
+                    return n;
+                });
+                saveAllProfileNotes(notes);
+                renderProfile();
+            } else if (groupType === 'expense') {
+                transactions = transactions.map(t => {
+                    if (t.groupId === groupId) t.groupId = null;
+                    return t;
+                });
+                saveAllTransactions(transactions);
+                renderDashboard();
+            }
+
+            const newGroups = groups.filter(g => g.id !== groupId);
+            saveAllGroups(newGroups);
+            
+            hideDeleteModal();
+        }
+
+        function handleDeleteDataConfirm() {
+            localStorage.removeItem(DB_DATA_KEY);
+            localStorage.removeItem(DB_PROFILE_KEY); 
+            localStorage.removeItem(DB_GROUPS_KEY); 
+            
+            hideDeleteModal();
+            renderDashboard(); 
+            renderProfile();
+            updateDashboardHeader();
+            // renderSmartActionBar(); // No need
+            
+            chatWindow.innerHTML = '';
+            addMessageToChat("AI", "ข้อมูลทั้งหมดของคุณ (การเงิน, โปรไฟล์, และกลุ่ม) ถูกลบเรียบร้อยแล้วครับ");
+        }
+        
+        function handleExportData() {
+            const financialData = localStorage.getItem(DB_DATA_KEY) || '[]';
+            const profileData = localStorage.getItem(DB_PROFILE_KEY) || '[]';
+            const groupData = localStorage.getItem(DB_GROUPS_KEY) || '[]';
+            
+            const allData = {
+                financialData: JSON.parse(financialData),
+                profileData: JSON.parse(profileData),
+                groupData: JSON.parse(groupData)
+            };
+            
+            const blob = new Blob([JSON.stringify(allData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kru_ai_backup_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        // --- NEW: Smart Action Bar Logic (Show/Hide) ---
+        
+        function showSmartBar() {
+            renderSmartActionBar(); // Refresh content
+            smartActionBar.classList.remove('hidden');
+        }
+
+        function hideSmartBar(e) {
+            // Check if the blur was caused by clicking on a suggestion button.
+            // If it was, don't hide the bar.
+            const relatedTarget = e ? e.relatedTarget : null;
+            if (relatedTarget && smartActionBar.contains(relatedTarget)) {
+                return; // Don't hide, user is clicking a suggestion
+            }
+            
+            // User clicked anywhere else, so hide it.
+            smartActionBar.classList.add('hidden');
+        }
+
+        function getFrequentCategories() {
+            const transactions = getAllTransactions();
+            const expenseTrans = transactions.filter(t => t.type === 'expense');
+            const categoryCounts = {};
+            
+            expenseTrans.forEach(t => { 
+                categoryCounts[t.category] = (categoryCounts[t.category] || 0) + 1; 
+            });
+            
+            const sortedCategories = Object.entries(categoryCounts)
+                .sort((a, b) => b[1] - a[1]); // Sort by count descending
+                
+            return sortedCategories.slice(0, 5).map(item => item[0]); // Return top 5 category names
+        }
+
+        function renderSmartActionBar() {
+            const categories = getFrequentCategories();
+            let html = `
+                <button class="btn-pill-green smart-action" data-value="รายรับ: ">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-1.5"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm.75-11.25a.75.75 0 0 0-1.5 0v2.5h-2.5a.75.75 0 0 0 0 1.5h2.5v2.5a.75.75 0 0 0 1.5 0v-2.5h2.5a.75.75 0 0 0 0-1.5h-2.5v-2.5Z" /></svg>
+                    [+] รายรับ
+                </button>
+                <button class="btn-pill-red smart-action" data-value="รายจ่าย: ">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-4 h-4 mr-1.5"><path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16ZM6.75 9.25a.75.75 0 0 0 0 1.5h6.5a.75.75 0 0 0 0-1.5h-6.5Z" /></svg>
+                    [–] รายจ่าย
+                </button>
+            `;
+            
+            categories.forEach(cat => {
+                html += `<button class="btn-pill-suggestion smart-action" data-value="รายจ่าย: ${cat} ">${cat}</button>`;
+            });
+            
+            smartActionBar.innerHTML = html;
+        }
+
+        function handleSmartActionClick(e) {
+            const button = e.target.closest('.smart-action');
+            if (!button) return;
+            
+            const value = button.dataset.value;
+            userInput.value = value;
+            userInput.focus(); // Keep focus after clicking
+        }
+        // --- End of Smart Action Bar Logic ---
+
+
+        // --- Category MERGE Logic (No changes) ---
+        function getUniqueExpenseCategories() {
+            const transactions = getAllTransactions();
+            const expenseCategories = transactions
+                .filter(t => t.type === 'expense')
+                .map(t => t.category);
+            return [...new Set(expenseCategories)]; 
+        }
+
+        async function handleAnalyzeCategories() {
+            if (!geminiApiKey) {
+                alert("กรุณาตั้งค่า API Key ก่อนใช้งานฟีเจอร์นี้ครับ");
+                showView('settings');
+                return;
+            }
+            const categories = getUniqueExpenseCategories();
+            if (categories.length < 2) {
+                alert("คุณมีหมวดหมู่ค่าใช้จ่ายน้อยเกินไป (น้อยกว่า 2) AI จึงยังไม่สามารถวิเคราะห์ได้ครับ");
+                return;
+            }
+
+            categoryAnalysisSpinner.classList.remove('hidden');
+            categorySuggestionsContainer.innerHTML = ''; 
+            
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=${geminiApiKey}`;
+            const payload = {
+                systemInstruction: {
+                    parts: [{ text: `You are a data analyst. Your job is to find similar categories and suggest merging them. Given a list of Thai expense categories, return a JSON array of suggestions. Each suggestion object must have two keys: 'merge' (an array of old category names) and 'as' (a single new suggested name in Thai). Only suggest merges for 2 or more items that are clearly similar (e.g., 'กาแฟ', 'อเมซอน'). Do not merge unrelated items. If no suggestions are found, return an empty array.
+Example Response:
+[
+  { "merge": ["กาแฟ", "อเมซอน", "ค่ากาแฟ"], "as": "เครื่องดื่มและกาแฟ" },
+  { "merge": ["BTS", "ค่ารถ", "MRT"], "as": "ค่าเดินทาง" }
+]`
+                    }]
+                },
+                contents: [{ 
+                    parts: [{ text: "Please analyze these categories: " + JSON.stringify(categories) }] 
+                }],
+                generationConfig: {
+                    responseMimeType: "application/json",
+                    responseSchema: {
+                        type: "ARRAY",
+                        items: {
+                            type: "OBJECT",
+                            properties: {
+                                "merge": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                "as": { "type": "STRING" }
+                            },
+                            "required": ["merge", "as"]
+                        }
+                    }
+                }
+            };
+
+            try {
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) {
+                    const errorData = await response.json();
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorData.error.message}`);
+                }
+                const result = await response.json();
+                const suggestionsText = result.candidates[0].content.parts[0].text;
+                const suggestions = JSON.parse(suggestionsText);
+                displayCategorySuggestions(suggestions);
+            } catch (error) {
+                console.error("Error analyzing categories:", error);
+                categorySuggestionsContainer.innerHTML = `<div class="text-red-500 text-sm">เกิดข้อผิดพลาดในการวิเคราะห์: ${error.message}</div>`;
+            } finally {
+                categoryAnalysisSpinner.classList.add('hidden');
+            }
+        }
+        
+        function displayCategorySuggestions(suggestions) {
+            if (suggestions.length === 0) {
+                categorySuggestionsContainer.innerHTML = `<div class="text-green-600 text-sm p-3 bg-green-50 rounded-lg">ไม่พบหมวดหมู่ที่แนะนำให้รวมครับ หมวดหมู่ของคุณดูดีแล้ว!</div>`;
+                return;
+            }
+            categorySuggestionsContainer.innerHTML = suggestions.map((s, index) => {
+                const fromCategoriesHtml = s.merge.map(cat => 
+                    `<span class="bg-gray-200 text-gray-700 text-xs font-medium px-2 py-0.5 rounded-full">${cat}</span>`
+                ).join(' ');
+                
+                // IMPORTANT: Escape single quotes for the data-attribute
+                const fromCategoriesJson = JSON.stringify(s.merge).replace(/'/g, "&apos;");
+
+                return `
+                <div class="suggestion-card bg-gray-50 border border-gray-200 p-4 rounded-lg shadow-sm">
+                    <div class="flex items-center mb-3"><span class="text-sm font-medium text-gray-500 mr-2">รวม:</span><div class="flex flex-wrap gap-1">${fromCategoriesHtml}</div></div>
+                    <div class="flex items-center"><span class="text-sm font-medium text-gray-500 mr-2">เป็น:</span><input type="text" id="merge-to-input-${index}" class="flex-1 border border-gray-300 rounded-lg p-2 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" value="${s.as}"></div>
+                    <div class="flex justify-end space-x-2 mt-4">
+                        <button class="merge-skip-btn btn-secondary px-3 py-1.5 text-sm">ข้าม</button>
+                        <button class="merge-approve-btn btn-purple px-4 py-1.5 text-sm" data-merge-from='${fromCategoriesJson}' data-input-id="merge-to-input-${index}">อนุมัติ</button>
+                    </div>
+                </div>
+                `;
+            }).join('');
+        }
+        
+        function handleMergeCategory(button) {
+            const fromCategories = JSON.parse(button.dataset.mergeFrom.replace(/&apos;/g, "'"));
+            const toCategoryInput = document.getElementById(button.dataset.inputId);
+            const toCategory = toCategoryInput.value.trim();
+            
+            if (!toCategory) {
+                alert("กรุณาตั้งชื่อหมวดหมู่ใหม่");
+                toCategoryInput.focus();
+                return;
+            }
+
+            mergeTransactions(fromCategories, toCategory);
+            
+            const card = button.closest('.suggestion-card');
+            card.innerHTML = `<div class="flex items-center justify-center p-4 text-green-600"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5 mr-2"><path fill-rule="evenodd" d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm3.857-9.809a.75.75 0 0 0-1.214-.882l-3.483 4.79-1.88-1.88a.75.75 0 1 0-1.06 1.061l2.5 2.5a.75.75 0 0 0 1.137-.089l4-5.5Z" clip-rule="evenodd" /></svg>รวมสำเร็จ!</div>`;
+            setTimeout(() => card.remove(), 2000);
+        }
+        
+        function mergeTransactions(fromCategories, toCategory) {
+            let transactions = getAllTransactions(); 
+            const updatedTransactions = transactions.map(t => {
+                if (t.type === 'expense' && fromCategories.includes(t.category)) {
+                    return { ...t, category: toCategory };
+                }
+                return t;
+            });
+            saveAllTransactions(updatedTransactions);
+            console.log(`Merged ${fromCategories.join(', ')} into ${toCategory}`);
+            // Must refresh dashboard and suggestions after merge
+            renderDashboard();
+            // renderSmartActionBar(); // No need, will refresh on next focus
+        }
+
+    </script>
+</body>
+</html>
